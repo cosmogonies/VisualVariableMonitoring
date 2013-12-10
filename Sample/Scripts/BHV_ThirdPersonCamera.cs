@@ -161,7 +161,8 @@ public class BHV_ThirdPersonCamera : MonoBehaviour
 		SetUpRotation(targetCenter, targetHead);
 	}
 	
-	void LateUpdate () 
+	//void LateUpdate () 
+	void Update () 
 	{
 		Apply (transform, Vector3.zero);
 	}

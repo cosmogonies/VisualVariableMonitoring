@@ -62,7 +62,8 @@ public class BHV_ThirdPersonController : MonoBehaviour
 	// The current vertical speed
 	private float verticalSpeed = 0.0f;
 	// The current x-z move speed
-	private float moveSpeed = 0.0f;
+	[DBG_Track(0.8f,0.2f,0.2f)]
+	public float moveSpeed = 0.0f;
 	
 	// The last collision flags returned from controller.Move
 	private CollisionFlags collisionFlags ; 
