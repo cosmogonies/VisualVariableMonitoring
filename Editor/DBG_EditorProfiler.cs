@@ -57,7 +57,7 @@ public class DBG_EditorProfiler : UnityEditor.EditorWindow
 		}
 
 	}
-	
+
 	void Update()
 	{
 		
@@ -70,7 +70,7 @@ public class DBG_EditorProfiler : UnityEditor.EditorWindow
 	{
 		if( EditorApplication.isPlaying )
 		{
-			int frame = Time.renderedFrameCount;
+			//int frame = Time.renderedFrameCount;
 
 			//CameraControl comp = Camera.main.camera.GetComponent<CameraControl>() as CameraControl;			
 
@@ -85,6 +85,6 @@ public class DBG_EditorProfiler : UnityEditor.EditorWindow
 			this.Repaint();
 		}
 	}
-	
+
 
 }

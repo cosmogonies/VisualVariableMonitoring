@@ -16,8 +16,6 @@ public class BHV_ThirdPersonController : MonoBehaviour
 	public float jumpAnimationSpeed  = 1.15f;
 	public float landAnimationSpeed  = 1.0f;
 	
-	private Animation _animation;
-	
 	enum CharacterState 
 	{
 		Idle = 0,
@@ -27,14 +25,14 @@ public class BHV_ThirdPersonController : MonoBehaviour
 		Jumping = 4,
 	}
 	
-	private CharacterState _characterState ;
+	//private CharacterState _characterState ;
 	
 	// The speed when walking
 	float walkSpeed = 2.0f;
 	// after trotAfterSeconds of walking we trot with trotSpeed
-	float trotSpeed = 4.0f;
+	//float trotSpeed = 4.0f;
 	// when pressing "Fire3" button (cmd) we start running
-	float runSpeed = 6.0f;
+	//float runSpeed = 6.0f;
 	
 	float inAirControlAcceleration = 3.0f;
 	
@@ -46,7 +44,7 @@ public class BHV_ThirdPersonController : MonoBehaviour
 	// The gravity in controlled descent mode
 	float speedSmoothing = 10.0f;
 	float rotateSpeed = 500.0f;
-	float trotAfterSeconds = 3.0f;
+	//float trotAfterSeconds = 3.0f;
 	
 	bool canJump = true;
 	
@@ -77,7 +75,7 @@ public class BHV_ThirdPersonController : MonoBehaviour
 	// Is the user pressing any keys?
 	private bool isMoving = false;
 	// When did the user start walking (Used for going into trot after a while)
-	private float walkTimeStart = 0.0f;
+	//private float walkTimeStart = 0.0f;
 	// Last time the jump button was clicked down
 	private float lastJumpButtonTime = -10.0f;
 	// Last time we performed a jump
@@ -85,7 +83,7 @@ public class BHV_ThirdPersonController : MonoBehaviour
 	
 	
 	// the height we jumped from (Used to determine for how long to apply extra jump power after jumping.)
-	private float lastJumpStartHeight = 0.0f;
+	//private float lastJumpStartHeight = 0.0f;
 	
 	
 	private Vector3 inAirVelocity = Vector3.zero;
@@ -96,35 +94,9 @@ public class BHV_ThirdPersonController : MonoBehaviour
 	
 	void Awake()
 	{
+
 		moveDirection = transform.TransformDirection(Vector3.forward);
-		
-		_animation = GetComponent<Animation>();
-		if(!_animation)
-			Debug.Log("The character you would like to control doesn't have animations. Moving her might look weird.");
-		
-		/*
-public var idleAnimation : AnimationClip;
-public var walkAnimation : AnimationClip;
-public var runAnimation : AnimationClip;
-public var jumpPoseAnimation : AnimationClip;	
-	*/
-		if(!idleAnimation) {
-			_animation = null;
-			Debug.Log("No idle animation found. Turning off animations.");
-		}
-		if(!walkAnimation) {
-			_animation = null;
-			Debug.Log("No walk animation found. Turning off animations.");
-		}
-		if(!runAnimation) {
-			_animation = null;
-			Debug.Log("No run animation found. Turning off animations.");
-		}
-		if(!jumpPoseAnimation && canJump) {
-			_animation = null;
-			Debug.Log("No jump animation found and the character has canJump enabled. Turning off animations.");
-		}
-		
+
 	}
 	
 	
@@ -190,7 +162,8 @@ public var jumpPoseAnimation : AnimationClip;
 			// Choose target speed
 			//* We want to support analog input but make sure you cant walk faster diagonally than just forward or sideways
 			float targetSpeed = Mathf.Min(targetDirection.magnitude, 1.0f);
-			
+
+			/*
 			_characterState = CharacterState.Idle;
 			
 			// Pick speed modifier
@@ -209,14 +182,16 @@ public var jumpPoseAnimation : AnimationClip;
 				targetSpeed *= walkSpeed;
 				_characterState = CharacterState.Walking;
 			}
+			*/
 			
 			moveSpeed = Mathf.Lerp(moveSpeed, targetSpeed, curSmooth);
 			
 			// Reset walk time start when we slow down
-			if (moveSpeed < walkSpeed * 0.3f)
-				walkTimeStart = Time.time;
+			//if (moveSpeed < walkSpeed * 0.3f)
+			//	walkTimeStart = Time.time;
 		}
 		// In air controls
+
 		else
 		{
 			// Lock camera while in air
@@ -254,10 +229,6 @@ public var jumpPoseAnimation : AnimationClip;
 	{
 		if (isControllable)	// don't move player at all if not controllable.
 		{
-			// Apply gravity
-			var jumpButton = Input.GetButton("Jump");
-			
-			
 			// When we reach the apex of the jump we send out a message
 			if (jumping && !jumpingReachedApex && verticalSpeed <= 0.0f)
 			{
@@ -284,10 +255,10 @@ public var jumpPoseAnimation : AnimationClip;
 		jumping = true;
 		jumpingReachedApex = false;
 		lastJumpTime = Time.time;
-		lastJumpStartHeight = transform.position.y;
+		//lastJumpStartHeight = transform.position.y;
 		lastJumpButtonTime = -10;
 		
-		_characterState = CharacterState.Jumping;
+		//_characterState = CharacterState.Jumping;
 	}
 	
 	void Update() 
@@ -321,7 +292,8 @@ public var jumpPoseAnimation : AnimationClip;
 		// Move the controller
 		CharacterController controller  = GetComponent<CharacterController>();
 		collisionFlags = controller.Move(movement);
-		
+
+		/*
 		// ANIMATION sector
 		if(_animation) {
 			if(_characterState == CharacterState.Jumping) 
@@ -359,6 +331,7 @@ public var jumpPoseAnimation : AnimationClip;
 				}
 			}
 		}
+		*/
 		// ANIMATION sector
 		
 		// Set rotation to the move direction
