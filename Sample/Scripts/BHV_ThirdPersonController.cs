@@ -64,7 +64,7 @@ public class BHV_ThirdPersonController : MonoBehaviour
 	// The current x-z move speed
 
 
-	[DBG_Track("toto")]
+	[DBG_Track("Olive")]
 	//[DBG_Track(0.8f,0.2f,0.2f)]
 	//[DBG_Track( Color.yellow )]
 	//[DBG_Track(jumpRepeatTime,jumpTimeout,groundedTimeout)]
