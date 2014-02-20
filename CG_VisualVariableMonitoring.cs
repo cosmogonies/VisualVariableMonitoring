@@ -33,12 +33,36 @@ public class DBG_Track : System.Attribute
 		this.VariableColor = _Color;
 	}
 	*/
-	/*
+
+
 	public DBG_Track(string _ColorName)
 	{
-		this.VariableColor = Color.;
+
+		//System.Reflection.FieldInfo[] FieldArray = Color.GetType().GetFields();
+
+		//foreach( System.Reflection.FieldInfo current in FieldArray )
+
+		//FieldInfo[] fi = typeof(Color).GetFields(BindingFlags.Public | BindingFlags.Instance);
+		//FieldInfo[] fi = typeof(Color).GetFields(BindingFlags.Public | BindingFlags.Static | BindingFlags.SetProperty);
+		/*
+		FieldInfo[] fi = typeof(Color).GetFields();
+		foreach (FieldInfo info in fi)
+		{
+			Debug.Log(info.Name);
+		}
+		*/
+
+		PropertyInfo[] pi = typeof(Color).GetProperties();
+		foreach (PropertyInfo info in pi)
+		{
+			Debug.Log(info.Name);
+		}
+
+		//Debug.Log (Color.yellow.ToString());
+
+		this.VariableColor = Color.yellow;
 	}
-	*/
+
 
 	public DBG_Track(float _Red, float _Green, float _Blue)
 	{
@@ -77,6 +101,8 @@ public class DBG_DataCollector
 
 	//Queue<float> DataValue;
 	public List<float> Data;
+
+
 
 	public float MaximumValue= 0.0f;
 	public float MinimumValue= 0.0f;
@@ -134,10 +160,11 @@ public class DBG_DataCollector
 
 
 
-public class DBG_VisualVariableMonitoring  : MonoBehaviour
+public class CG_VisualVariableMonitoring  : MonoBehaviour
 {
 
-
+	//public List<float> Data;
+	public Dictionary<string,float> Data2;
 
 	//[DBG_Track()]
 	float MARGIN_WIDTH = 0.1f; // in screen ratio
@@ -152,7 +179,7 @@ public class DBG_VisualVariableMonitoring  : MonoBehaviour
 
 	float GUI_Opacity = 1.0f;
 	
-	public DBG_VisualVariableMonitoring()
+	public CG_VisualVariableMonitoring()
 	{
 		this.WatchDict = new Dictionary<string, DBG_DataCollector>();
 

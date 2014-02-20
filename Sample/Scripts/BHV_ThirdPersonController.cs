@@ -5,11 +5,13 @@ using System.Collections;
 [RequireComponent(typeof(CharacterController))]
 public class BHV_ThirdPersonController : MonoBehaviour 
 {
+	/*
 	public AnimationClip idleAnimation ;
 	public AnimationClip walkAnimation ;
 	public AnimationClip runAnimation ;
 	public AnimationClip jumpPoseAnimation ;
-	
+	*/
+
 	public float walkMaxAnimationSpeed  = 0.75f;
 	public float trotMaxAnimationSpeed  = 1.0f;
 	public float runMaxAnimationSpeed  = 1.0f;
@@ -60,7 +62,12 @@ public class BHV_ThirdPersonController : MonoBehaviour
 	// The current vertical speed
 	private float verticalSpeed = 0.0f;
 	// The current x-z move speed
-	[DBG_Track(0.8f,0.2f,0.2f)]
+
+
+	[DBG_Track("toto")]
+	//[DBG_Track(0.8f,0.2f,0.2f)]
+	//[DBG_Track( Color.yellow )]
+	//[DBG_Track(jumpRepeatTime,jumpTimeout,groundedTimeout)]
 	public float moveSpeed = 0.0f;
 	
 	// The last collision flags returned from controller.Move
