@@ -1,7 +1,15 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class BHV_ThirdPersonCamera : MonoBehaviour 
+/*
+Disclaimer: This is a simplified version of ThirdPersonController.js given in StandardPackages in Unity's new project.
+It is given here only to demonstrate how the VisualVariableMonitoring is working, and serve absolutely no other purposes.
+Author: contact@cosmogonies.net
+Website: www.cosmogonies.net
+*/
+
+
+public class ThirdPersonCamera : MonoBehaviour 
 {
 	public Transform cameraTransform;
 	private Transform _target;
@@ -31,7 +39,7 @@ public class BHV_ThirdPersonCamera : MonoBehaviour
 	private float heightVelocity = 0.0f;
 	private float angleVelocity = 0.0f;
 	private bool snap = false;
-	private BHV_ThirdPersonController controller;
+	private ThirdPersonController controller;
 	private float targetHeight = 100000.0f; 
 	
 	void Awake ()
@@ -47,7 +55,7 @@ public class BHV_ThirdPersonCamera : MonoBehaviour
 		_target = transform;
 		if (_target)
 		{
-			controller = _target.GetComponent<BHV_ThirdPersonController>();
+			controller = _target.GetComponent<ThirdPersonController>();
 		}
 		
 		if (controller)

@@ -10,47 +10,26 @@ public enum eLayoutMode {kStacked=1, kOverlapped=2};
 public enum eDrawingStyle {kColumns=1, kCurve=2};
 
 
-
-
 public class DBG_DataCollector
 {
-
-
 	internal System.Reflection.FieldInfo Field;
 	internal MonoBehaviour Behaviour;
 
-	//internal string VariableName ="Default";
 	internal Color VariableColor = Color.white;
 
-	//Queue<float> DataValue;
 	public List<float> Data;
-
-
 
 	public float MaximumValue= 0.0f;
 	public float MinimumValue= 0.0f;
 
 	public float Average= 0.0f;
-	//float AverageExceptNull= 0.0f;
 
-	/*
-	public DBG_DataCollector(string _Name, Color _Color)
-	{
-		this.VariableName = _Name;
-		this.VariableColor = _Color;
-		Data = new List<float>();
-
-	}
-	*/
 	public DBG_DataCollector(System.Reflection.FieldInfo _Field, MonoBehaviour _Behaviour, Color _Color)
 	{
 		this.Field = _Field;
 		this.Behaviour = _Behaviour;
-
-		//this.VariableName = _Name;
 		this.VariableColor = _Color;
 		Data = new List<float>();
-		
 	}
 
 	public void addValue(float _NewValue)
@@ -77,25 +56,18 @@ public class DBG_DataCollector
 		this.Average= 0.0f;
 	}
 
-
-
 }
 
 
 
 public class CG_VisualVariableMonitoring  : MonoBehaviour
 {
-
-	//public List<float> Data;
 	public Dictionary<string,float> Data2;
 
-	//[DBG_Track()]
 	float MARGIN_WIDTH = 0.1f; // in screen ratio
 
-	//eDrawingStyle DrawingStyle;
 	eLayoutMode LayoutMode;
 
-	//[DBG_Track()]
 	public bool AbsoluteMode =true;
 
 	public Dictionary<string, DBG_DataCollector> WatchDict;
@@ -105,25 +77,14 @@ public class CG_VisualVariableMonitoring  : MonoBehaviour
 	public CG_VisualVariableMonitoring()
 	{
 		this.WatchDict = new Dictionary<string, DBG_DataCollector>();
-
-		//this.DrawingStyle = eDrawingStyle.kCurve;
-
 		this.LayoutMode = eLayoutMode.kStacked;
-
-		//this.WatchDict["AdjustmentAngle"] = new DBG_DataCollector("AdjustmentAngle", Color.yellow);
-		//this.WatchDict["Velocity"] = new DBG_DataCollector("Velocity", Color.cyan);
-		//this.WatchDict["PointOccluded"] = new DBG_DataCollector("PointOccluded", Color.green);
 	}
 
 	void Start()
 	{
-		Debug.Log ("** INTROSPECTING **");
-
 		//find tagged public fields:
 
-
 		//Find what objects to inspect TODO: maybe add a way not to parse everything (layers, tags) ?
-
 		MonoBehaviour[] MonoBehaviourArray =  UnityEngine.Object.FindObjectsOfType<MonoBehaviour>();
 
 		//TOADD: Maybe also detect class instances
@@ -131,13 +92,8 @@ public class CG_VisualVariableMonitoring  : MonoBehaviour
 		for (int i = 0; i < MonoBehaviourArray.Length; i ++) 
 		{
 			//Debug.Log ( MonoBehaviourArray[i].name );
-
 			MonoBehaviour currentBehaviour = MonoBehaviourArray[i];
-
-
 			//Debug.Log ("Introspecting current class :" +currentBehaviour.name+" of type "+currentBehaviour.GetType().Name);
-
-
 
 			System.Reflection.FieldInfo[] FieldArray = currentBehaviour.GetType().GetFields();
 			for (int j = 0; j < FieldArray.Length; j ++) 
@@ -150,143 +106,20 @@ public class CG_VisualVariableMonitoring  : MonoBehaviour
 
 					for (int k = 0; k < CustomAttributeArray.Length; k ++) 
 					{
-
 						//Debug.Log("Found attributes on attribute "+currentField.Name);
 						
 						if( CustomAttributeArray[k].GetType() == typeof(DBG_Track) )
 						{
-							Debug.Log ("\tFound trackable variable @ class :" +currentBehaviour.name+" typeof "+currentBehaviour.GetType().Name +" FieldName = "+ currentField.Name);
-
+							//Debug.Log ("\tFound trackable variable @ class :" +currentBehaviour.name+" typeof "+currentBehaviour.GetType().Name +" FieldName = "+ currentField.Name);
 							this.WatchDict[currentField.Name] = new DBG_DataCollector(currentField, currentBehaviour,  ((DBG_Track) CustomAttributeArray[k]).VariableColor);
-
-							/*
-							if(  ((DBG_Track) CustomAttributeArray[k]).VariableColor == Color.red )
-							{
-								this.WatchDict[currentField.Name] = new DBG_DataCollector(currentField, currentBehaviour,  (DBG_Track) CustomAttributeArray[k]).VariableColor);
-							}
-							else
-								this.WatchDict[currentField.Name] = new DBG_DataCollector(currentField, currentBehaviour,  Color.green);
-*/
-
-							//float currentValue = (float) currentField.GetValue(currentBehaviour); //TODO: be sure the cast is possible
-							//Debug.Log (currentValue);
 						}
 					}
 				}
 				
 			}
-
-
-
-
 		}
 
-		//Debug.Log ( Assembly.GetAssembly().GetTypes().Length );
-
-		//Instrospecting current class !
-
-
-
-		//Debug.Log ("Introspecting current class :" +this.name+" of type "+this.GetType().Name);
-
-
-		/*
-		System.Reflection.MemberInfo info = this.GetType();
-		object[] AttributeArray = info.GetCustomAttributes(true);
-		Debug.Log ( AttributeArray.Length+" attributes found" );
-		for (int i = 0; i < AttributeArray.Length; i ++)
-		{
-			Debug.Log(AttributeArray[i]);
-		}
-		*/
-
-
-
-		/*
-		System.Reflection.MemberInfo[] MemberArray = this.GetType().GetMembers();
-		for (int k = 0; k < MemberArray.Length; k ++)
-		{
-			System.Reflection.MemberInfo currentMember = MemberArray[k];
-			Debug.Log ("Scanning Member ="+currentMember.Name);
-			
-			object[] AttributeArray3 = currentMember.GetCustomAttributes(true);
-			for (int i = 0; i < AttributeArray3.Length; i ++)
-			{
-				Debug.Log("==> fouuund "+AttributeArray3[i]);
-			}
-		}
-*/
-
-
-
-		/*
-		System.Reflection.FieldInfo[] FieldArray = this.GetType().GetFields();
-		for (int i = 0; i < FieldArray.Length; i ++) 
-		{
-			System.Reflection.FieldInfo currentField = FieldArray[i];
-
-			if( currentField.GetCustomAttributes(true).Length>0 )
-			{
-
-				Debug.Log("Found attributes on attribute "+currentField.Name);
-
-				if( currentField.GetCustomAttributes(true)[0].GetType() == typeof(DBG_Track) )
-				{
-					Debug.Log ("Found trackable variable = "+ currentField.Name);
-
-					float currentValue = (float) currentField.GetValue(this); //TODO: be sure the cast is possible
-
-					Debug.Log (currentValue);
-				}
-
-			}
-
-		}
-*/
-
-
-		//Type type = this.GetType();
-		//Debug.Log( "this.GetType().Name =" + type.Name );
-		
-		
-		//System.Reflection.FieldInfo info = type.GetField("TestVariable");	
-		//Debug.Log( info );
-		
-		//Debug.Log( info.GetValue(this) );
-
-
-
-
-
-		/*
-		System.Reflection.PropertyInfo[] PropertyArray = this.GetType().GetProperties();
-		for (int j = 0; j < PropertyArray.Length; j ++)
-		{
-			System.Reflection.PropertyInfo currentProperty = PropertyArray[j];
-			Debug.Log ("Scanning Property ="+currentProperty.Name);
-
-			object[] AttributeArray2 = currentProperty.GetCustomAttributes(true);
-			for (int i = 0; i < AttributeArray2.Length; i ++)
-			{
-				Debug.Log("==> found "+AttributeArray2[i]);
-			}
-		}
-		*/
 	}
-
-	// DID NOT work... because Mono does not have LINQ *sigh*
-	/*
-	static IEnumerable<Type> GetTypesWithHelpAttribute(Assembly assembly) 
-	{
-		foreach(Type type in assembly.GetTypes()) 
-		{
-			if (type.GetCustomAttributes(typeof(HelpAttribute), true).Length > 0) 
-			{
-				yield return type;
-			}
-		}
-	}
-*/
 
 	void OnGUI()
 	{
@@ -346,64 +179,14 @@ public class CG_VisualVariableMonitoring  : MonoBehaviour
 
 	void LateUpdate()
 	{
-		//AdjustementAngle
-		/*
-		CameraControl comp = Camera.main.camera.GetComponent<CameraControl>() as CameraControl;
-		float value = Mathf.Abs( comp.gonCameraMotion.PreviousAngle );		
-		if(AbsoluteMode) 
-			if(value<0)
-				value = Mathf.Abs(value);
-		this.WatchDict["AdjustmentAngle"].addValue(value);
-
-
-		//	velocity
-		value = comp.velocity ;		
-		this.WatchDict["Velocity"].addValue(value);
-		*/
-
-
-		//	PointOccluded
-		//value = (float)comp.PointOccluded ;		
-		//this.WatchDict["PointOccluded"].addValue(value);
-
-
-		/*
-		//access to CLS_CameraMotion.previousAngle :
-		//From http://msdn.microsoft.com/en-us/library/z919e8tw%28v=vs.110%29.aspx
-		System.Type t = typeof(DBG_Track);
-		// Using reflection.
-		System.Attribute[] attrs = System.Attribute.GetCustomAttributes(t);  // Reflection. 
-
-		// Displaying output. 
-		foreach (System.Attribute attr in attrs)
-		{
-
-			Debug.Log(attr.GetType().ToString());
-			if (attr is DBG_Track)
-			{
-				Debug.LogError("FOUUUND");
-
-				//Author a = (Author)attr;
-				//System.Console.WriteLine("   {0}, version {1:f}", a.GetName(), a.version);
-				DBG_Track a = (DBG_Track) attr;
-				Debug.Log ("found =");
-				Debug.Log (a.ToString());
-			}
-		}
-		*/
-
 
 		foreach (KeyValuePair<string, DBG_DataCollector> kvp in this.WatchDict) 
 		{
-			//float currentValue = (float)kvp.Value.Field.GetValue (kvp.Value.Behaviour); //TODO: be sure the cast is possible
-
 			float currentValue = (float)kvp.Value.Field.GetValue (kvp.Value.Behaviour); //TODO: be sure the cast is possible
 			currentValue = Mathf.Abs (currentValue);
 
 			kvp.Value.addValue(currentValue);
 			//Debug.Log (currentValue);
-
-			//Debug.Log (kvp.Value.Behaviour.);
 		}
 
 		//if(this.DrawingStyle == eDrawingStyle.kColumns)
@@ -515,42 +298,21 @@ public class CG_VisualVariableMonitoring  : MonoBehaviour
 
 
 
-
-//[System.AttributeUsage(System.AttributeTargets.All | System.AttributeTargets.Struct)]
-//[System.AttributeUsage(System.AttributeTargets.All)]
-
 public class DBG_Track : System.Attribute
 {
-	//private string name;
 	public Color VariableColor;
-	//public double version;
-	
-	//public DBG_Track(Color _Color)
+
 	public DBG_Track()
 	{
-		//this.VariableColor = Color.white;
-		
 		//No Color determined, randomised:
 		this.VariableColor = new Color( UnityEngine.Random.value, UnityEngine.Random.value,UnityEngine.Random.value);
-		//TODO: having a predetermined color set (10?) for great-looking monitorying
-		
+		//TODO: having a predetermined color set (10?) for great-looking monitorying		
 	}
-	
-	/*
-	public DBG_Track(Color _Color)
-	{
-		this.VariableColor = _Color;
-	}
-	*/
-	
-	
+
 	public DBG_Track(string _ColorName)
 	{
-
 		this.VariableColor = this.getColorByName(_ColorName);
-
-	}
-	
+	}	
 	
 	public DBG_Track(float _Red, float _Green, float _Blue)
 	{
@@ -565,6 +327,13 @@ public class DBG_Track : System.Attribute
 		
 		this.VariableColor = new Color (_Red, _Green,_Blue);
 	}
+
+	/*
+	public DBG_Track(Color _Color)
+	{
+		this.VariableColor = _Color;
+	}
+	*/
 	
 	public Color getColorByName(string _ColorName)
 	{
@@ -726,7 +495,7 @@ public class DBG_Track : System.Attribute
 		{
 			if( kvp.Key.ToUpper() == _ColorName.ToUpper() )
 			{
-				Debug.Log(kvp.Value+" found");
+				//Debug.Log(kvp.Value+" found");
 
 				string HexRed = kvp.Value.Substring(1,2);
 				string HesGreen = kvp.Value.Substring(3,2);
@@ -739,7 +508,6 @@ public class DBG_Track : System.Attribute
 			}
 
 		}
-
 		return Color.black;		//Default Color
 	}
 }

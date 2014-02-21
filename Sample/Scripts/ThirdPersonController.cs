@@ -1,17 +1,17 @@
 ﻿using UnityEngine;
 using System.Collections;
 
+/*
+Disclaimer: This is a simplified version of ThirdPersonController.js given in StandardPackages in Unity's new project.
+It is given here only to demonstrate how the VisualVariableMonitoring is working, and serve absolutely no other purposes.
+Author: contact@cosmogonies.net
+Website: www.cosmogonies.net
+*/
+
 // Require a character controller to be attached to the same game object
 [RequireComponent(typeof(CharacterController))]
-public class BHV_ThirdPersonController : MonoBehaviour 
+public class ThirdPersonController : MonoBehaviour 
 {
-	/*
-	public AnimationClip idleAnimation ;
-	public AnimationClip walkAnimation ;
-	public AnimationClip runAnimation ;
-	public AnimationClip jumpPoseAnimation ;
-	*/
-
 	public float walkMaxAnimationSpeed  = 0.75f;
 	public float trotMaxAnimationSpeed  = 1.0f;
 	public float runMaxAnimationSpeed  = 1.0f;
@@ -27,15 +27,9 @@ public class BHV_ThirdPersonController : MonoBehaviour
 		Jumping = 4,
 	}
 	
-	//private CharacterState _characterState ;
-	
 	// The speed when walking
 	float walkSpeed = 2.0f;
-	// after trotAfterSeconds of walking we trot with trotSpeed
-	//float trotSpeed = 4.0f;
-	// when pressing "Fire3" button (cmd) we start running
-	//float runSpeed = 6.0f;
-	
+
 	float inAirControlAcceleration = 3.0f;
 	
 	// How high do we jump when pressing jump and letting go immediately
@@ -46,8 +40,7 @@ public class BHV_ThirdPersonController : MonoBehaviour
 	// The gravity in controlled descent mode
 	float speedSmoothing = 10.0f;
 	float rotateSpeed = 500.0f;
-	//float trotAfterSeconds = 3.0f;
-	
+
 	bool canJump = true;
 	
 	private float jumpRepeatTime = 0.05f;
@@ -67,7 +60,6 @@ public class BHV_ThirdPersonController : MonoBehaviour
 	[DBG_Track("Olive")]
 	//[DBG_Track(0.8f,0.2f,0.2f)]
 	//[DBG_Track( Color.yellow )]
-	//[DBG_Track(jumpRepeatTime,jumpTimeout,groundedTimeout)]
 	public float moveSpeed = 0.0f;
 	
 	// The last collision flags returned from controller.Move
@@ -89,21 +81,13 @@ public class BHV_ThirdPersonController : MonoBehaviour
 	private float lastJumpTime = -1.0f;
 	
 	
-	// the height we jumped from (Used to determine for how long to apply extra jump power after jumping.)
-	//private float lastJumpStartHeight = 0.0f;
-	
-	
 	private Vector3 inAirVelocity = Vector3.zero;
-	
 	private float lastGroundedTime = 0.0f;
-
 	private bool isControllable = true;
 	
 	void Awake()
 	{
-
 		moveDirection = transform.TransformDirection(Vector3.forward);
-
 	}
 	
 	
@@ -169,36 +153,10 @@ public class BHV_ThirdPersonController : MonoBehaviour
 			// Choose target speed
 			//* We want to support analog input but make sure you cant walk faster diagonally than just forward or sideways
 			float targetSpeed = Mathf.Min(targetDirection.magnitude, 1.0f);
-
-			/*
-			_characterState = CharacterState.Idle;
-			
-			// Pick speed modifier
-			if (Input.GetKey (KeyCode.LeftShift) || Input.GetKey (KeyCode.RightShift))
-			{
-				targetSpeed *= runSpeed;
-				_characterState = CharacterState.Running;
-			}
-			else if (Time.time - trotAfterSeconds > walkTimeStart)
-			{
-				targetSpeed *= trotSpeed;
-				_characterState = CharacterState.Trotting;
-			}
-			else
-			{
-				targetSpeed *= walkSpeed;
-				_characterState = CharacterState.Walking;
-			}
-			*/
 			
 			moveSpeed = Mathf.Lerp(moveSpeed, targetSpeed, curSmooth);
-			
-			// Reset walk time start when we slow down
-			//if (moveSpeed < walkSpeed * 0.3f)
-			//	walkTimeStart = Time.time;
 		}
 		// In air controls
-
 		else
 		{
 			// Lock camera while in air
@@ -208,9 +166,6 @@ public class BHV_ThirdPersonController : MonoBehaviour
 			if (isMoving)
 				inAirVelocity += targetDirection.normalized * Time.deltaTime * inAirControlAcceleration;
 		}
-		
-		
-		
 	}
 	
 	
@@ -264,8 +219,6 @@ public class BHV_ThirdPersonController : MonoBehaviour
 		lastJumpTime = Time.time;
 		//lastJumpStartHeight = transform.position.y;
 		lastJumpButtonTime = -10;
-		
-		//_characterState = CharacterState.Jumping;
 	}
 	
 	void Update() 
@@ -300,53 +253,10 @@ public class BHV_ThirdPersonController : MonoBehaviour
 		CharacterController controller  = GetComponent<CharacterController>();
 		collisionFlags = controller.Move(movement);
 
-		/*
-		// ANIMATION sector
-		if(_animation) {
-			if(_characterState == CharacterState.Jumping) 
-			{
-				if(!jumpingReachedApex) {
-					_animation[jumpPoseAnimation.name].speed = jumpAnimationSpeed;
-					_animation[jumpPoseAnimation.name].wrapMode = WrapMode.ClampForever;
-					_animation.CrossFade(jumpPoseAnimation.name);
-				} else {
-					_animation[jumpPoseAnimation.name].speed = -landAnimationSpeed;
-					_animation[jumpPoseAnimation.name].wrapMode = WrapMode.ClampForever;
-					_animation.CrossFade(jumpPoseAnimation.name);				
-				}
-			} 
-			else 
-			{
-				if(controller.velocity.sqrMagnitude < 0.1f) {
-					_animation.CrossFade(idleAnimation.name);
-				}
-				else 
-				{
-					if(_characterState == CharacterState.Running) {
-						_animation[runAnimation.name].speed = Mathf.Clamp(controller.velocity.magnitude, 0.0f, runMaxAnimationSpeed);
-						_animation.CrossFade(runAnimation.name);	
-					}
-					else if(_characterState == CharacterState.Trotting) {
-						_animation[walkAnimation.name].speed = Mathf.Clamp(controller.velocity.magnitude, 0.0f, trotMaxAnimationSpeed);
-						_animation.CrossFade(walkAnimation.name);	
-					}
-					else if(_characterState == CharacterState.Walking) {
-						_animation[walkAnimation.name].speed = Mathf.Clamp(controller.velocity.magnitude, 0.0f, walkMaxAnimationSpeed);
-						_animation.CrossFade(walkAnimation.name);	
-					}
-					
-				}
-			}
-		}
-		*/
-		// ANIMATION sector
-		
 		// Set rotation to the move direction
 		if (IsGrounded())
-		{
-			
-			transform.rotation = Quaternion.LookRotation(moveDirection);
-			
+		{	
+			transform.rotation = Quaternion.LookRotation(moveDirection);	
 		}	
 		else
 		{
