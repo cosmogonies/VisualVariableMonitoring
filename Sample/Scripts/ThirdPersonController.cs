@@ -59,9 +59,7 @@ public class ThirdPersonController : MonoBehaviour
 	// The current x-z move speed
 
 
-	[DBG_Track("Olive")]
-	//[DBG_Track(0.8f,0.2f,0.2f)]
-	//[DBG_Track( Color.yellow )]
+	[DBG_Track("DarkOrchid")]
 	public float moveSpeed = 0.0f;
 	
 	// The last collision flags returned from controller.Move

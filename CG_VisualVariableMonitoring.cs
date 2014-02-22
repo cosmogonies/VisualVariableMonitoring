@@ -141,9 +141,9 @@ namespace CG_VisualVariableMonitoring
 			float PanelWidth = MarginWidth * Screen.width;
 
 			float XPos=0.0f;
-			if(this.MarginSide== eMarginSide.LeftSide)
-				XPos = Screen.width - (PanelWidth);
 			if(this.MarginSide== eMarginSide.RightSide)
+				XPos = Screen.width - (PanelWidth);
+			if(this.MarginSide== eMarginSide.LeftSide)
 				XPos = 0.0f;
 
 			float SlicedPanelHeight =  (1f/this.WatchDict.Keys.Count) * Screen.height;
@@ -176,21 +176,26 @@ namespace CG_VisualVariableMonitoring
 			}
 
 			//Footer
-			this.GUI_Opacity = GUI.HorizontalSlider (new Rect (XPos, Screen.height - FontHeight * 2, PanelWidth, FontHeight), this.GUI_Opacity, 0.0f, 1.0f);
-			if( GUI.Button( new Rect(XPos, Screen.height - FontHeight, PanelWidth*0.5f,FontHeight), this.LayoutMode.ToString() ) )
+			this.GUI_Opacity = GUI.HorizontalSlider (new Rect (XPos, Screen.height - FontHeight * 3, PanelWidth, FontHeight), this.GUI_Opacity, 0.0f, 1.0f);
+			if( GUI.Button( new Rect(XPos, Screen.height - FontHeight*2, PanelWidth*0.5f,FontHeight), this.LayoutMode.ToString() ) )
 			{
 				if(this.LayoutMode == eLayoutMode.Stacked)
 					this.LayoutMode = eLayoutMode.Overlapped;
 				else
 					this.LayoutMode = eLayoutMode.Stacked;
 			}
-			if( GUI.Button( new Rect(XPos+ PanelWidth*0.5f, Screen.height - FontHeight, PanelWidth*0.5f,FontHeight), "Clear" ) )
+			if( GUI.Button( new Rect(XPos+ PanelWidth*0.5f, Screen.height - FontHeight*2, PanelWidth*0.5f,FontHeight), "Abs" ) )
+			{
+				this.AbsoluteMode = !this.AbsoluteMode;
+			}
+			if( GUI.Button( new Rect(XPos, Screen.height - FontHeight, PanelWidth,FontHeight), "Clear" ) )
 			{
 				foreach (KeyValuePair<string, DBG_DataCollector> kvp in this.WatchDict)
 				{
 					kvp.Value.clearData();
 				}
 			}
+
 		}
 
 
@@ -225,7 +230,7 @@ namespace CG_VisualVariableMonitoring
 
 		void DrawCurve(DBG_DataCollector _DataCollector, int _SliceIteration, int _SliceCount, float _Opacity)
 		{
-			float ratio = 0.0f;
+			float XPosAsRatio = 0.0f;
 			float value = 0.0f;
 			
 			List< Vector3 > ViewPortBuffer = new List<Vector3>();
@@ -236,27 +241,52 @@ namespace CG_VisualVariableMonitoring
 
 			for(int i=0; i< _DataCollector.Data.Count; i++)
 			{
-				//ratio =  Mathf.Lerp(MarginWidth,1.0f-MarginWidth, (float) i / (_DataCollector.Data.Count -1) ) ;
-				//ratio =  Mathf.Lerp(0.0f,1.0f-MarginWidth, (float) i / (_DataCollector.Data.Count -1) ) ;
-
-				if(this.MarginSide == eMarginSide.LeftSide)
-					ratio =  Mathf.Lerp(0.0f,1.0f-MarginWidth, (float) i / (_DataCollector.Data.Count -1) ) ;
-				else if(this.MarginSide == eMarginSide.RightSide)
-					ratio =  Mathf.Lerp(MarginWidth,1.0f, (float) i / (_DataCollector.Data.Count -1) ) ;
-				else
-					ratio =  Mathf.Lerp(0.0f,1.0f, (float) i / (_DataCollector.Data.Count -1) ) ;
-				
 				value = _DataCollector.Data[i];
 
-				float valueRatio = 0.0f;
-				if(_DataCollector.MaximumValue!=0.0f)
-					valueRatio = value/_DataCollector.MaximumValue;
+				//Determining the XPos as a ratio for the screen
+				if(this.MarginSide == eMarginSide.RightSide)
+					XPosAsRatio =  Mathf.Lerp(0.0f,1.0f-MarginWidth, (float) i / (_DataCollector.Data.Count -1) ) ;
+				else if(this.MarginSide == eMarginSide.LeftSide)
+					XPosAsRatio =  Mathf.Lerp(MarginWidth,1.0f, (float) i / (_DataCollector.Data.Count -1) ) ;
+				else
+					XPosAsRatio =  Mathf.Lerp(0.0f,1.0f, (float) i / (_DataCollector.Data.Count -1) ) ;
+				
+				//Determining the YPos as a ratio for the screen, according to Stacked layout and AbsoluteMode:
+				float YPosAsRatio = 0.0f;
+				if( this.AbsoluteMode)
+				{
+					if(_DataCollector.MaximumValue!=0.0f)
+						YPosAsRatio = value/_DataCollector.MaximumValue;
+				}
+				else
+				{
+					float Max=1.0f;
+
+					if( Mathf.Abs(_DataCollector.MinimumValue) > _DataCollector.MaximumValue )
+					{
+						if(_DataCollector.MinimumValue!=0.0f)
+							Max = Mathf.Abs(_DataCollector.MinimumValue);
+					}
+					else
+					{
+						if(_DataCollector.MaximumValue!=0.0f)
+							Max = _DataCollector.MaximumValue;
+					}
+
+					YPosAsRatio = Mathf.Abs(value) / Max;
+
+					if(value>=0.0f)
+						YPosAsRatio = 0.5f+(YPosAsRatio*0.5f);
+					else
+						YPosAsRatio = 0.5f-(YPosAsRatio*0.5f);
+				}
 
 				if( this.LayoutMode == eLayoutMode.Stacked)
-					valueRatio = (1f/_SliceCount)*_SliceIteration + (valueRatio*(1f/_SliceCount)  );
+				{
+						YPosAsRatio = (1f/_SliceCount)*_SliceIteration + (YPosAsRatio*(1f/_SliceCount)  );
+				}
 
-				
-				Vector3 Point2D_Value = new Vector3(ratio, valueRatio, Camera.main.nearClipPlane*2  );
+				Vector3 Point2D_Value = new Vector3(XPosAsRatio, YPosAsRatio, Camera.main.nearClipPlane*2  );
 
 				ViewPortBuffer.Add(Point2D_Value);
 
@@ -267,7 +297,6 @@ namespace CG_VisualVariableMonitoring
 
 					Debug.DrawLine(Point3D_ValuePrevious, Point3D_Value, TheColor, 0f);	//duration à 0f(seconds) => 1 frame
 				}
-				
 			}
 		}
 
