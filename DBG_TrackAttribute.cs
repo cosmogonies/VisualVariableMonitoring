@@ -2,27 +2,28 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-
 using System.Reflection;
 
+//========================
+//	Author: Cyrille PAULHIAC
+//	Email: contact@cosmogonies.net
+//	WebSite: www.cosmogonies.net
+//========================
+
+//Custom Attribute to tag a public field for visual debugging
 public class DBG_Track : System.Attribute
 {
 	public Color VariableColor;
 	
-	public DBG_Track()
-	{
-		//No Color determined, randomised:
-		this.VariableColor = new Color( UnityEngine.Random.value, UnityEngine.Random.value,UnityEngine.Random.value);
-		//TODO: having a predetermined color set (10?) for great-looking monitorying		
-	}
-	
+
 	public DBG_Track(string _ColorName)
-	{
+	{	//Constructor for a given color as string
 		this.VariableColor = this.getColorByName(_ColorName);
 	}	
 	
 	public DBG_Track(float _Red, float _Green, float _Blue)
-	{
+	{ //Constructor for a given color as R,G,B
+
 		//Unity uses ratio for color channels :
 		//maybe user still use 255 range
 		if (_Red > 1.0f)
@@ -34,14 +35,14 @@ public class DBG_Track : System.Attribute
 		
 		this.VariableColor = new Color (_Red, _Green,_Blue);
 	}
-	
-	/*
-		public DBG_Track(Color _Color)
-		{
-			this.VariableColor = _Color;
-		}
-		*/
-	
+
+	public DBG_Track()
+	{
+		//No Color determined, random time:
+		this.VariableColor = new Color( UnityEngine.Random.value, UnityEngine.Random.value,UnityEngine.Random.value);
+	}
+	//public DBG_Track(Color _Color)
+
 	public Color getColorByName(string _ColorName)
 	{
 		//Looking for a unity's Color with that name:
@@ -202,8 +203,6 @@ public class DBG_Track : System.Attribute
 		{
 			if( kvp.Key.ToUpper() == _ColorName.ToUpper() )
 			{
-				//Debug.Log(kvp.Value+" found");
-				
 				string HexRed = kvp.Value.Substring(1,2);
 				string HesGreen = kvp.Value.Substring(3,2);
 				string HexBlue = kvp.Value.Substring(5,2);
@@ -215,7 +214,7 @@ public class DBG_Track : System.Attribute
 			}
 			
 		}
-		return Color.black;		//Default Color
+		return Color.black;		//Default Color if no matching.
 	}
 }
 

@@ -2,35 +2,38 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-
 using System.Reflection;
 
-
+//========================
+//	Author: Cyrille PAULHIAC
+//	Email: contact@cosmogonies.net
+//	WebSite: www.cosmogonies.net
+//========================
 
 namespace CG_VisualVariableMonitoring
 {
+	//Margin layout abilities
 	public enum eMarginSide {LeftSide=-1, NoMargin=0, RightSide=1};
 
+	//Curves layout mode
 	public enum eLayoutMode {Stacked=1, Overlapped=2};
 	
-	//public enum eDrawingStyle {Columns=1, Curve=2};
-
 	public class DBG_DataCollector
-	{
-		internal System.Reflection.FieldInfo Field;
-		internal MonoBehaviour Behaviour;
+	{	//Custom class to hold collected data and perform analysis.
 
-		internal Color VariableColor = Color.white;
+		internal System.Reflection.FieldInfo Field;		//The source field
+		internal MonoBehaviour Behaviour;				//The source scripted Component
+		internal Color VariableColor = Color.white;	//Default Color.
 
-		public List<float> Data;
+		public List<float> Data;						//The Data !
 
-		public float MaximumValue= 0.0f;
-		public float MinimumValue= 0.0f;
+		public float MaximumValue= float.MinValue;
+		public float MinimumValue= float.MaxValue;
 
 		public float Average= 0.0f;
 
 		public DBG_DataCollector(System.Reflection.FieldInfo _Field, MonoBehaviour _Behaviour, Color _Color)
-		{
+		{	//Constructor
 			this.Field = _Field;
 			this.Behaviour = _Behaviour;
 			this.VariableColor = _Color;
@@ -38,14 +41,16 @@ namespace CG_VisualVariableMonitoring
 		}
 
 		public void addValue(float _NewValue)
-		{
+		{	//Update with the new Value at current frame.
+			this.Data.Add(_NewValue);
+
+			//Update Min/Max
 			if( _NewValue > this.MaximumValue ) 
 				this.MaximumValue = _NewValue;
 			if( _NewValue < this.MinimumValue ) 
 				this.MinimumValue = _NewValue;
 
-			this.Data.Add(_NewValue);
-
+			//Update Average computation
 			float sum=0.0f;
 			for(int i=0; i< this.Data.Count; i++)
 				sum+=this.Data[i];
@@ -53,14 +58,14 @@ namespace CG_VisualVariableMonitoring
 		}
 
 		public float getCurrentValue()
-		{
+		{	//returns the current Value (last one registered).
 			if(this.Data.Count==0)//First frame or we just done a clear
 				return 0.0f;
 			return this.Data[ this.Data.Count-1 ];
 		}
 
 		public void clearData()
-		{
+		{	//wipe all datas, for a total new context.
 			this.Data.Clear ();
 			this.MaximumValue= 0.0f;
 			this.MinimumValue= 0.0f;
@@ -69,39 +74,34 @@ namespace CG_VisualVariableMonitoring
 
 	}
 
-
-
 	public class CG_VisualVariableMonitoring  : MonoBehaviour
-	{
-		public eMarginSide MarginSide = eMarginSide.LeftSide;
-		public float MarginWidth = 0.1f; // in screen ratio
+	{	//The Component that needs to be attached to your playing Camera.
 
-		public eLayoutMode LayoutMode;
+		public eMarginSide MarginSide = eMarginSide.LeftSide;	// Side for the Data's Margin
+		public float MarginWidth = 0.15f; 						// in screen ratio
 
-		public bool AbsoluteMode =true;
+		public eLayoutMode LayoutMode;							// Curve drawing method
 
-		public Dictionary<string, DBG_DataCollector> WatchDict;
+		public bool AbsoluteMode =true;						// Does sign matters ?
 
-		float GUI_Opacity = 1.0f;
+		public float Opacity = 1.0f;							// The Opacity of the Curves.
+
+		public Dictionary<string, DBG_DataCollector> WatchDict;// All Trackables
 		
 		public CG_VisualVariableMonitoring()
 		{
 			this.WatchDict = new Dictionary<string, DBG_DataCollector>();
-			//this.LayoutMode = eLayoutMode.Stacked;
 		}
 
 		void Start()
 		{
-			//find tagged public fields:
+			//Find tagged public fields:
 
 			//Find what objects to inspect TODO: maybe add a way not to parse everything (layers, tags) ?
 			MonoBehaviour[] MonoBehaviourArray =  UnityEngine.Object.FindObjectsOfType<MonoBehaviour>();
 
-			//TOADD: Maybe also detect class instances
-
 			for (int i = 0; i < MonoBehaviourArray.Length; i ++) 
 			{
-				//Debug.Log ( MonoBehaviourArray[i].name );
 				MonoBehaviour currentBehaviour = MonoBehaviourArray[i];
 				//Debug.Log ("Introspecting current class :" +currentBehaviour.name+" of type "+currentBehaviour.GetType().Name);
 
@@ -109,15 +109,11 @@ namespace CG_VisualVariableMonitoring
 				for (int j = 0; j < FieldArray.Length; j ++) 
 				{
 					System.Reflection.FieldInfo currentField = FieldArray[j];
-
 					object[] CustomAttributeArray = currentField.GetCustomAttributes(true);
 					if( CustomAttributeArray.Length>0 )
 					{
-
 						for (int k = 0; k < CustomAttributeArray.Length; k ++) 
 						{
-							//Debug.Log("Found attributes on attribute "+currentField.Name);
-							
 							if( CustomAttributeArray[k].GetType() == typeof(DBG_Track) )
 							{
 								//Debug.Log ("\tFound trackable variable @ class :" +currentBehaviour.name+" typeof "+currentBehaviour.GetType().Name +" FieldName = "+ currentField.Name);
@@ -149,34 +145,36 @@ namespace CG_VisualVariableMonitoring
 			float SlicedPanelHeight =  (1f/this.WatchDict.Keys.Count) * Screen.height;
 
 			// Displaying values analysis in Margin
-			int j=1;
+			#region ValueAnalysis
+			int VariableIteration=1;
 			foreach (KeyValuePair<string, DBG_DataCollector> kvp in this.WatchDict)
 			{
-				int i=1;
-				float YPos = Screen.height - SlicedPanelHeight*j;
+				int LineIteration=1;
+				float YPos = Screen.height - SlicedPanelHeight*VariableIteration;
 
 				DBG_DataCollector current = kvp.Value;
 
 				GUIStyle TextStyle = new GUIStyle();
 				TextStyle.normal.textColor = current.VariableColor;
 
-				GUI.Label(new Rect(XPos, YPos+FontHeight*i, (MarginWidth * Screen.width),FontHeight), "["+current.Field.Name+"]",TextStyle);
-				i++;
-				GUI.Label(new Rect(XPos, YPos+FontHeight*i, (MarginWidth * Screen.width),FontHeight), "[Cur="+current.getCurrentValue().ToString()+"]",TextStyle);
-				i++;
-				GUI.Label(new Rect(XPos, YPos+FontHeight*i, (MarginWidth * Screen.width),FontHeight), "[Min="+current.MinimumValue.ToString()+"]",TextStyle);
-				i++;
-				GUI.Label(new Rect(XPos, YPos+FontHeight*i, (MarginWidth * Screen.width),FontHeight), "[Max="+current.MaximumValue.ToString()+"]",TextStyle);
-				i++;
-				GUI.Label(new Rect(XPos, YPos+FontHeight*i, (MarginWidth * Screen.width),FontHeight), "[Avrg="+current.Average.ToString()+"]",TextStyle);
-				i++;
-				i++;
+				GUI.Label(new Rect(XPos, YPos+FontHeight*LineIteration, (MarginWidth * Screen.width),FontHeight), "["+current.Field.Name+"]",TextStyle);
+				LineIteration++;
+				GUI.Label(new Rect(XPos, YPos+FontHeight*LineIteration, (MarginWidth * Screen.width),FontHeight), "[Cur="+current.getCurrentValue().ToString()+"]",TextStyle);
+				LineIteration++;
+				GUI.Label(new Rect(XPos, YPos+FontHeight*LineIteration, (MarginWidth * Screen.width),FontHeight), "[Min="+current.MinimumValue.ToString()+"]",TextStyle);
+				LineIteration++;
+				GUI.Label(new Rect(XPos, YPos+FontHeight*LineIteration, (MarginWidth * Screen.width),FontHeight), "[Max="+current.MaximumValue.ToString()+"]",TextStyle);
+				LineIteration++;
+				GUI.Label(new Rect(XPos, YPos+FontHeight*LineIteration, (MarginWidth * Screen.width),FontHeight), "[Avrg="+current.Average.ToString()+"]",TextStyle);
+				LineIteration++;
+				LineIteration++;
 
-				j++;
+				VariableIteration++;
 			}
+			#endregion
 
-			//Footer
-			this.GUI_Opacity = GUI.HorizontalSlider (new Rect (XPos, Screen.height - FontHeight * 3, PanelWidth, FontHeight), this.GUI_Opacity, 0.0f, 1.0f);
+			#region Footer
+			this.Opacity = GUI.HorizontalSlider (new Rect (XPos, Screen.height - FontHeight * 3, PanelWidth, FontHeight), this.Opacity, 0.0f, 1.0f);
 			if( GUI.Button( new Rect(XPos, Screen.height - FontHeight*2, PanelWidth*0.5f,FontHeight), this.LayoutMode.ToString() ) )
 			{
 				if(this.LayoutMode == eLayoutMode.Stacked)
@@ -195,6 +193,7 @@ namespace CG_VisualVariableMonitoring
 					kvp.Value.clearData();
 				}
 			}
+			#endregion
 
 		}
 
@@ -211,13 +210,13 @@ namespace CG_VisualVariableMonitoring
 
 				kvp.Value.addValue(currentValue);
 			}
-
-			if (this.GUI_Opacity > 0.0f) 
+			//Drawing the curves :
+			if (this.Opacity > 0.0f) 
 			{
 				int i = 0;
 				foreach (KeyValuePair<string, DBG_DataCollector> kvp in this.WatchDict) 
 				{
-					DrawCurve (kvp.Value, i, this.WatchDict.Keys.Count, this.GUI_Opacity);
+					DrawCurve (kvp.Value, i, this.WatchDict.Keys.Count, this.Opacity);
 					i++;
 				}
 			}
@@ -229,7 +228,7 @@ namespace CG_VisualVariableMonitoring
 
 
 		void DrawCurve(DBG_DataCollector _DataCollector, int _SliceIteration, int _SliceCount, float _Opacity)
-		{
+		{	//Draw the curve for the given DataCollector
 			float XPosAsRatio = 0.0f;
 			float value = 0.0f;
 			
