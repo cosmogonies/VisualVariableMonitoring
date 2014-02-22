@@ -6,510 +6,311 @@ using System.Collections.Generic;
 using System.Reflection;
 
 
-public enum eLayoutMode {kStacked=1, kOverlapped=2};
-public enum eDrawingStyle {kColumns=1, kCurve=2};
 
-
-public class DBG_DataCollector
+namespace CG_VisualVariableMonitoring
 {
-	internal System.Reflection.FieldInfo Field;
-	internal MonoBehaviour Behaviour;
+	public enum eMarginSide {LeftSide=-1, NoMargin=0, RightSide=1};
 
-	internal Color VariableColor = Color.white;
-
-	public List<float> Data;
-
-	public float MaximumValue= 0.0f;
-	public float MinimumValue= 0.0f;
-
-	public float Average= 0.0f;
-
-	public DBG_DataCollector(System.Reflection.FieldInfo _Field, MonoBehaviour _Behaviour, Color _Color)
-	{
-		this.Field = _Field;
-		this.Behaviour = _Behaviour;
-		this.VariableColor = _Color;
-		Data = new List<float>();
-	}
-
-	public void addValue(float _NewValue)
-	{
-		if( _NewValue > this.MaximumValue ) 
-			this.MaximumValue = _NewValue;
-		if( _NewValue < this.MinimumValue ) 
-			this.MinimumValue = _NewValue;
-
-		this.Data.Add(_NewValue);
-
-		float sum=0.0f;
-		for(int i=0; i< this.Data.Count; i++)
-			sum+=this.Data[i];
-		this.Average = sum / this.Data.Count;
-
-	}
-
-	public void clearData()
-	{
-		this.Data.Clear ();
-		this.MaximumValue= 0.0f;
-		this.MinimumValue= 0.0f;
-		this.Average= 0.0f;
-	}
-
-}
-
-
-
-public class CG_VisualVariableMonitoring  : MonoBehaviour
-{
-	public Dictionary<string,float> Data2;
-
-	float MARGIN_WIDTH = 0.1f; // in screen ratio
-
-	eLayoutMode LayoutMode;
-
-	public bool AbsoluteMode =true;
-
-	public Dictionary<string, DBG_DataCollector> WatchDict;
-
-	float GUI_Opacity = 1.0f;
+	public enum eLayoutMode {Stacked=1, Overlapped=2};
 	
-	public CG_VisualVariableMonitoring()
+	//public enum eDrawingStyle {Columns=1, Curve=2};
+
+	public class DBG_DataCollector
 	{
-		this.WatchDict = new Dictionary<string, DBG_DataCollector>();
-		this.LayoutMode = eLayoutMode.kStacked;
+		internal System.Reflection.FieldInfo Field;
+		internal MonoBehaviour Behaviour;
+
+		internal Color VariableColor = Color.white;
+
+		public List<float> Data;
+
+		public float MaximumValue= 0.0f;
+		public float MinimumValue= 0.0f;
+
+		public float Average= 0.0f;
+
+		public DBG_DataCollector(System.Reflection.FieldInfo _Field, MonoBehaviour _Behaviour, Color _Color)
+		{
+			this.Field = _Field;
+			this.Behaviour = _Behaviour;
+			this.VariableColor = _Color;
+			Data = new List<float>();
+		}
+
+		public void addValue(float _NewValue)
+		{
+			if( _NewValue > this.MaximumValue ) 
+				this.MaximumValue = _NewValue;
+			if( _NewValue < this.MinimumValue ) 
+				this.MinimumValue = _NewValue;
+
+			this.Data.Add(_NewValue);
+
+			float sum=0.0f;
+			for(int i=0; i< this.Data.Count; i++)
+				sum+=this.Data[i];
+			this.Average = sum / this.Data.Count;
+		}
+
+		public float getCurrentValue()
+		{
+			if(this.Data.Count==0)//First frame or we just done a clear
+				return 0.0f;
+			return this.Data[ this.Data.Count-1 ];
+		}
+
+		public void clearData()
+		{
+			this.Data.Clear ();
+			this.MaximumValue= 0.0f;
+			this.MinimumValue= 0.0f;
+			this.Average= 0.0f;
+		}
+
 	}
 
-	void Start()
+
+
+	public class CG_VisualVariableMonitoring  : MonoBehaviour
 	{
-		//find tagged public fields:
+		public eMarginSide MarginSide = eMarginSide.LeftSide;
+		public float MarginWidth = 0.1f; // in screen ratio
 
-		//Find what objects to inspect TODO: maybe add a way not to parse everything (layers, tags) ?
-		MonoBehaviour[] MonoBehaviourArray =  UnityEngine.Object.FindObjectsOfType<MonoBehaviour>();
+		public eLayoutMode LayoutMode;
 
-		//TOADD: Maybe also detect class instances
+		public bool AbsoluteMode =true;
 
-		for (int i = 0; i < MonoBehaviourArray.Length; i ++) 
+		public Dictionary<string, DBG_DataCollector> WatchDict;
+
+		float GUI_Opacity = 1.0f;
+		
+		public CG_VisualVariableMonitoring()
 		{
-			//Debug.Log ( MonoBehaviourArray[i].name );
-			MonoBehaviour currentBehaviour = MonoBehaviourArray[i];
-			//Debug.Log ("Introspecting current class :" +currentBehaviour.name+" of type "+currentBehaviour.GetType().Name);
+			this.WatchDict = new Dictionary<string, DBG_DataCollector>();
+			//this.LayoutMode = eLayoutMode.Stacked;
+		}
 
-			System.Reflection.FieldInfo[] FieldArray = currentBehaviour.GetType().GetFields();
-			for (int j = 0; j < FieldArray.Length; j ++) 
+		void Start()
+		{
+			//find tagged public fields:
+
+			//Find what objects to inspect TODO: maybe add a way not to parse everything (layers, tags) ?
+			MonoBehaviour[] MonoBehaviourArray =  UnityEngine.Object.FindObjectsOfType<MonoBehaviour>();
+
+			//TOADD: Maybe also detect class instances
+
+			for (int i = 0; i < MonoBehaviourArray.Length; i ++) 
 			{
-				System.Reflection.FieldInfo currentField = FieldArray[j];
+				//Debug.Log ( MonoBehaviourArray[i].name );
+				MonoBehaviour currentBehaviour = MonoBehaviourArray[i];
+				//Debug.Log ("Introspecting current class :" +currentBehaviour.name+" of type "+currentBehaviour.GetType().Name);
 
-				object[] CustomAttributeArray = currentField.GetCustomAttributes(true);
-				if( CustomAttributeArray.Length>0 )
+				System.Reflection.FieldInfo[] FieldArray = currentBehaviour.GetType().GetFields();
+				for (int j = 0; j < FieldArray.Length; j ++) 
 				{
+					System.Reflection.FieldInfo currentField = FieldArray[j];
 
-					for (int k = 0; k < CustomAttributeArray.Length; k ++) 
+					object[] CustomAttributeArray = currentField.GetCustomAttributes(true);
+					if( CustomAttributeArray.Length>0 )
 					{
-						//Debug.Log("Found attributes on attribute "+currentField.Name);
-						
-						if( CustomAttributeArray[k].GetType() == typeof(DBG_Track) )
+
+						for (int k = 0; k < CustomAttributeArray.Length; k ++) 
 						{
-							//Debug.Log ("\tFound trackable variable @ class :" +currentBehaviour.name+" typeof "+currentBehaviour.GetType().Name +" FieldName = "+ currentField.Name);
-							this.WatchDict[currentField.Name] = new DBG_DataCollector(currentField, currentBehaviour,  ((DBG_Track) CustomAttributeArray[k]).VariableColor);
+							//Debug.Log("Found attributes on attribute "+currentField.Name);
+							
+							if( CustomAttributeArray[k].GetType() == typeof(DBG_Track) )
+							{
+								//Debug.Log ("\tFound trackable variable @ class :" +currentBehaviour.name+" typeof "+currentBehaviour.GetType().Name +" FieldName = "+ currentField.Name);
+								this.WatchDict[currentField.Name] = new DBG_DataCollector(currentField, currentBehaviour,  ((DBG_Track) CustomAttributeArray[k]).VariableColor);
+							}
 						}
 					}
+					
+				}
+			}
+
+		}
+
+		void OnGUI()
+		{
+			//If No Margin is selected, exiting.
+			if(this.MarginSide== eMarginSide.NoMargin)
+				return;
+
+			float FontHeight =18.0f;
+			float PanelWidth = MarginWidth * Screen.width;
+
+			float XPos=0.0f;
+			if(this.MarginSide== eMarginSide.LeftSide)
+				XPos = Screen.width - (PanelWidth);
+			if(this.MarginSide== eMarginSide.RightSide)
+				XPos = 0.0f;
+
+			float SlicedPanelHeight =  (1f/this.WatchDict.Keys.Count) * Screen.height;
+
+			// Displaying values analysis in Margin
+			int j=1;
+			foreach (KeyValuePair<string, DBG_DataCollector> kvp in this.WatchDict)
+			{
+				int i=1;
+				float YPos = Screen.height - SlicedPanelHeight*j;
+
+				DBG_DataCollector current = kvp.Value;
+
+				GUIStyle TextStyle = new GUIStyle();
+				TextStyle.normal.textColor = current.VariableColor;
+
+				GUI.Label(new Rect(XPos, YPos+FontHeight*i, (MarginWidth * Screen.width),FontHeight), "["+current.Field.Name+"]",TextStyle);
+				i++;
+				GUI.Label(new Rect(XPos, YPos+FontHeight*i, (MarginWidth * Screen.width),FontHeight), "[Cur="+current.getCurrentValue().ToString()+"]",TextStyle);
+				i++;
+				GUI.Label(new Rect(XPos, YPos+FontHeight*i, (MarginWidth * Screen.width),FontHeight), "[Min="+current.MinimumValue.ToString()+"]",TextStyle);
+				i++;
+				GUI.Label(new Rect(XPos, YPos+FontHeight*i, (MarginWidth * Screen.width),FontHeight), "[Max="+current.MaximumValue.ToString()+"]",TextStyle);
+				i++;
+				GUI.Label(new Rect(XPos, YPos+FontHeight*i, (MarginWidth * Screen.width),FontHeight), "[Avrg="+current.Average.ToString()+"]",TextStyle);
+				i++;
+				i++;
+
+				j++;
+			}
+
+			//Footer
+			this.GUI_Opacity = GUI.HorizontalSlider (new Rect (XPos, Screen.height - FontHeight * 2, PanelWidth, FontHeight), this.GUI_Opacity, 0.0f, 1.0f);
+			if( GUI.Button( new Rect(XPos, Screen.height - FontHeight, PanelWidth*0.5f,FontHeight), this.LayoutMode.ToString() ) )
+			{
+				if(this.LayoutMode == eLayoutMode.Stacked)
+					this.LayoutMode = eLayoutMode.Overlapped;
+				else
+					this.LayoutMode = eLayoutMode.Stacked;
+			}
+			if( GUI.Button( new Rect(XPos+ PanelWidth*0.5f, Screen.height - FontHeight, PanelWidth*0.5f,FontHeight), "Clear" ) )
+			{
+				foreach (KeyValuePair<string, DBG_DataCollector> kvp in this.WatchDict)
+				{
+					kvp.Value.clearData();
+				}
+			}
+		}
+
+
+		void LateUpdate()
+		{
+			//Adding current Values into the WatchDict.
+			foreach (KeyValuePair<string, DBG_DataCollector> kvp in this.WatchDict) 
+			{
+				float currentValue = (float) kvp.Value.Field.GetValue (kvp.Value.Behaviour); //TODO: be sure the cast is possible
+
+				if(this.AbsoluteMode)
+					currentValue = Mathf.Abs (currentValue);
+
+				kvp.Value.addValue(currentValue);
+			}
+
+			if (this.GUI_Opacity > 0.0f) 
+			{
+				int i = 0;
+				foreach (KeyValuePair<string, DBG_DataCollector> kvp in this.WatchDict) 
+				{
+					DrawCurve (kvp.Value, i, this.WatchDict.Keys.Count, this.GUI_Opacity);
+					i++;
+				}
+			}
+		}
+
+
+
+
+
+
+		void DrawCurve(DBG_DataCollector _DataCollector, int _SliceIteration, int _SliceCount, float _Opacity)
+		{
+			float ratio = 0.0f;
+			float value = 0.0f;
+			
+			List< Vector3 > ViewPortBuffer = new List<Vector3>();
+
+			Color TheColor = _DataCollector.VariableColor;
+			if(_Opacity<1.0f)
+				TheColor = new Color(TheColor.r, TheColor.g, TheColor.b, _Opacity);
+
+			for(int i=0; i< _DataCollector.Data.Count; i++)
+			{
+				//ratio =  Mathf.Lerp(MarginWidth,1.0f-MarginWidth, (float) i / (_DataCollector.Data.Count -1) ) ;
+				//ratio =  Mathf.Lerp(0.0f,1.0f-MarginWidth, (float) i / (_DataCollector.Data.Count -1) ) ;
+
+				if(this.MarginSide == eMarginSide.LeftSide)
+					ratio =  Mathf.Lerp(0.0f,1.0f-MarginWidth, (float) i / (_DataCollector.Data.Count -1) ) ;
+				else if(this.MarginSide == eMarginSide.RightSide)
+					ratio =  Mathf.Lerp(MarginWidth,1.0f, (float) i / (_DataCollector.Data.Count -1) ) ;
+				else
+					ratio =  Mathf.Lerp(0.0f,1.0f, (float) i / (_DataCollector.Data.Count -1) ) ;
+				
+				value = _DataCollector.Data[i];
+
+				float valueRatio = 0.0f;
+				if(_DataCollector.MaximumValue!=0.0f)
+					valueRatio = value/_DataCollector.MaximumValue;
+
+				if( this.LayoutMode == eLayoutMode.Stacked)
+					valueRatio = (1f/_SliceCount)*_SliceIteration + (valueRatio*(1f/_SliceCount)  );
+
+				
+				Vector3 Point2D_Value = new Vector3(ratio, valueRatio, Camera.main.nearClipPlane*2  );
+
+				ViewPortBuffer.Add(Point2D_Value);
+
+				if(i>0)
+				{
+					Vector3 Point3D_ValuePrevious = Camera.main.ViewportToWorldPoint( ViewPortBuffer[i-1] );
+					Vector3 Point3D_Value = Camera.main.ViewportToWorldPoint(Point2D_Value);
+
+					Debug.DrawLine(Point3D_ValuePrevious, Point3D_Value, TheColor, 0f);	//duration à 0f(seconds) => 1 frame
 				}
 				
 			}
 		}
 
-	}
-
-	void OnGUI()
-	{
-		float PanelWidth = MARGIN_WIDTH * Screen.width;
-		float FontHeight =18.0f;
-
-		float SlicedPanelHeight =  (1f/this.WatchDict.Keys.Count) * Screen.height;
-
-		float XPos = Screen.width - (PanelWidth);
-
-
-		int j=1;
-		foreach (KeyValuePair<string, DBG_DataCollector> kvp in this.WatchDict)
+		/*
+		void DrawColumns()
 		{
-			int i=1;
-			float YPos = Screen.height - SlicedPanelHeight*j;
 
-			DBG_DataCollector current = kvp.Value;
+			float ratio = 0.0f;
+			float value = 0.0f;
 
-			GUIStyle TextStyle = new GUIStyle();
-			TextStyle.normal.textColor = current.VariableColor;
+			//float ratioPrevious = 0.0f;
+			//float valuePrevious = 0.0f;
 
-			GUI.Label(new Rect(XPos, YPos+FontHeight*i, (MARGIN_WIDTH * Screen.width),FontHeight), "["+current.Field.Name+"]",TextStyle);
-			i++;
-			GUI.Label(new Rect(XPos, YPos+FontHeight*i, (MARGIN_WIDTH * Screen.width),FontHeight), "[Min="+current.MinimumValue.ToString()+"]",TextStyle);
-			i++;
-			GUI.Label(new Rect(XPos, YPos+FontHeight*i, (MARGIN_WIDTH * Screen.width),FontHeight), "[Max="+current.MaximumValue.ToString()+"]",TextStyle);
-			i++;
-			GUI.Label(new Rect(XPos, YPos+FontHeight*i, (MARGIN_WIDTH * Screen.width),FontHeight), "[Avrg="+current.Average.ToString()+"]",TextStyle);
-			i++;
-			i++;
+			Vector3 Point2D_ValuePrevious;
 
-			j++;
-		}
-
-		//Footer
-
-		this.GUI_Opacity = GUI.HorizontalSlider (new Rect (XPos, Screen.height - FontHeight * 2, PanelWidth, FontHeight), this.GUI_Opacity, 0.0f, 1.0f);
-		if( GUI.Button( new Rect(XPos, Screen.height - FontHeight, PanelWidth*0.5f,FontHeight), "Layout" ) )
-		{
-			if(this.LayoutMode == eLayoutMode.kStacked)
-				this.LayoutMode = eLayoutMode.kOverlapped;
-			else
-				this.LayoutMode = eLayoutMode.kStacked;
-		}
-		if( GUI.Button( new Rect(XPos+ PanelWidth*0.5f, Screen.height - FontHeight, PanelWidth*0.5f,FontHeight), "Clear" ) )
-		{
-			foreach (KeyValuePair<string, DBG_DataCollector> kvp in this.WatchDict)
+			for(int i=0; i< this.DataValue.Count; i++)
 			{
-				kvp.Value.clearData();
-			}
-		}
+				//ratioPrevious = ratio;
+				//valuePrevious = value;
 
+				ratio =  Mathf.Lerp(MarginWidth,1.0f-MarginWidth, (float) i / (this.DataValue.Count -1) ) ;
 
-	}
+				value = this.DataValue[i];
+				float valueRatio = value/this.MaximumValue;
 
+				Vector3 Point2D_Base = new Vector3(ratio, 0.0f, Camera.main.nearClipPlane*2  );
+				Vector3 Point2D_Value = new Vector3(ratio, valueRatio, Camera.main.nearClipPlane*2  );
 
-	void LateUpdate()
-	{
-
-		foreach (KeyValuePair<string, DBG_DataCollector> kvp in this.WatchDict) 
-		{
-			float currentValue = (float)kvp.Value.Field.GetValue (kvp.Value.Behaviour); //TODO: be sure the cast is possible
-			currentValue = Mathf.Abs (currentValue);
-
-			kvp.Value.addValue(currentValue);
-			//Debug.Log (currentValue);
-		}
-
-		//if(this.DrawingStyle == eDrawingStyle.kColumns)
-		//	DrawColumns();
-
-		if (this.GUI_Opacity > 0.0f) 
-		{
-
-			int i = 0;
-
-			foreach (KeyValuePair<string, DBG_DataCollector> kvp in this.WatchDict) 
-			{
-				DrawCurve (kvp.Value, i, this.WatchDict.Keys.Count, this.GUI_Opacity);
-				i++;
-			}
-		}
-	}
-
-
-
-
-	/*
-	void DrawColumns()
-	{
-
-		float ratio = 0.0f;
-		float value = 0.0f;
-
-		//float ratioPrevious = 0.0f;
-		//float valuePrevious = 0.0f;
-
-		Vector3 Point2D_ValuePrevious;
-
-		for(int i=0; i< this.DataValue.Count; i++)
-		{
-			//ratioPrevious = ratio;
-			//valuePrevious = value;
-
-			ratio =  Mathf.Lerp(MARGIN_WIDTH,1.0f-MARGIN_WIDTH, (float) i / (this.DataValue.Count -1) ) ;
-
-			value = this.DataValue[i];
-			float valueRatio = value/this.MaximumValue;
-
-			Vector3 Point2D_Base = new Vector3(ratio, 0.0f, Camera.main.nearClipPlane*2  );
-			Vector3 Point2D_Value = new Vector3(ratio, valueRatio, Camera.main.nearClipPlane*2  );
-
-			Vector3 Point3D_Base = Camera.main.ViewportToWorldPoint(Point2D_Base);
-			Vector3 Point3D_Value = Camera.main.ViewportToWorldPoint(Point2D_Value);
-
-			Debug.DrawLine(Point3D_Base, Point3D_Value, Color.yellow,0f);	//duration à 0f(seconds) => 1 frame
-
-		}
-	}
-*/
-
-	void DrawCurve(DBG_DataCollector _DataCollector, int _SliceIteration, int _SliceCount, float _Opacity)
-	{
-		
-		float ratio = 0.0f;
-		float value = 0.0f;
-		
-		List< Vector3 > ViewPortBuffer = new List<Vector3>();
-
-
-
-		Color TheColor = _DataCollector.VariableColor;
-		if(_Opacity<1.0f)
-			TheColor = new Color(TheColor.r, TheColor.g, TheColor.b, _Opacity);
-
-		for(int i=0; i< _DataCollector.Data.Count; i++)
-		{
-
-			//ratio =  Mathf.Lerp(MARGIN_WIDTH,1.0f-MARGIN_WIDTH, (float) i / (_DataCollector.Data.Count -1) ) ;
-			ratio =  Mathf.Lerp(0.0f,1.0f-MARGIN_WIDTH, (float) i / (_DataCollector.Data.Count -1) ) ;
-			
-			value = _DataCollector.Data[i];
-
-			float valueRatio = 0.0f;
-			if(_DataCollector.MaximumValue!=0.0f)
-				valueRatio = value/_DataCollector.MaximumValue;
-
-			if( this.LayoutMode == eLayoutMode.kStacked)
-				valueRatio = (1f/_SliceCount)*_SliceIteration + (valueRatio*(1f/_SliceCount)  );
-
-			
-			Vector3 Point2D_Value = new Vector3(ratio, valueRatio, Camera.main.nearClipPlane*2  );
-
-			ViewPortBuffer.Add(Point2D_Value);
-
-			if(i>0)
-			{
-				Vector3 Point3D_ValuePrevious = Camera.main.ViewportToWorldPoint( ViewPortBuffer[i-1] );
+				Vector3 Point3D_Base = Camera.main.ViewportToWorldPoint(Point2D_Base);
 				Vector3 Point3D_Value = Camera.main.ViewportToWorldPoint(Point2D_Value);
 
-				Debug.DrawLine(Point3D_ValuePrevious, Point3D_Value, TheColor, 0f);	//duration à 0f(seconds) => 1 frame
+				Debug.DrawLine(Point3D_Base, Point3D_Value, Color.yellow,0f);	//duration à 0f(seconds) => 1 frame
+
 			}
-			
 		}
-
-
+		*/
 
 	}
-
-
-
-	
 }
 
 
 
 
-public class DBG_Track : System.Attribute
-{
-	public Color VariableColor;
 
-	public DBG_Track()
-	{
-		//No Color determined, randomised:
-		this.VariableColor = new Color( UnityEngine.Random.value, UnityEngine.Random.value,UnityEngine.Random.value);
-		//TODO: having a predetermined color set (10?) for great-looking monitorying		
-	}
-
-	public DBG_Track(string _ColorName)
-	{
-		this.VariableColor = this.getColorByName(_ColorName);
-	}	
-	
-	public DBG_Track(float _Red, float _Green, float _Blue)
-	{
-		//Unity uses ratio for color channels :
-		//maybe user still use 255 range
-		if (_Red > 1.0f)
-			_Red /= 255;
-		if (_Green > 1.0f)
-			_Green /= 255;
-		if (_Blue > 1.0f)
-			_Blue /= 255;
-		
-		this.VariableColor = new Color (_Red, _Green,_Blue);
-	}
-
-	/*
-	public DBG_Track(Color _Color)
-	{
-		this.VariableColor = _Color;
-	}
-	*/
-	
-	public Color getColorByName(string _ColorName)
-	{
-		//Looking for a unity's Color with that name:
-		PropertyInfo[] pi = typeof(Color).GetProperties( BindingFlags.Public | BindingFlags.Static | BindingFlags.SetProperty);
-		foreach (PropertyInfo info in pi)
-		{
-			if( info.Name.ToUpper() == _ColorName.ToUpper() )	//avoiding case errors
-			{
-				return (Color) info.GetValue(typeof(Color), null);
-			}
-		}
-
-		// If nothing is found, let's try w3c names:
-		//According to the w3c http://www.w3schools.com/html/html_colorvalues.asp 
-		Dictionary<string,string> ColorDict = new Dictionary<string, string>();	// ColorName=> Hexvalue
-		ColorDict["Black"]=	"#000000";
-		ColorDict["Navy"]=	"#000080";
-		ColorDict["DarkBlue"]=	"#00008B";
-		ColorDict["MediumBlue"]=	"#0000CD";
-		ColorDict["Blue"]=	"#0000FF";
-		ColorDict["DarkGreen"]=	"#006400";
-		ColorDict["Green"]=	"#008000";
-		ColorDict["Teal"]=	"#008080";
-		ColorDict["DarkCyan"]=	"#008B8B";
-		ColorDict["DeepSkyBlue"]=	"#00BFFF";
-		ColorDict["DarkTurquoise"]=	"#00CED1";
-		ColorDict["MediumSpringGreen"]=	"#00FA9A";
-		ColorDict["Lime"]=	"#00FF00";
-		ColorDict["SpringGreen"]=	"#00FF7F";
-		ColorDict["Aqua"]=	"#00FFFF";
-		ColorDict["Cyan"]=	"#00FFFF";
-		ColorDict["MidnightBlue"]=	"#191970";
-		ColorDict["DodgerBlue"]=	"#1E90FF";
-		ColorDict["LightSeaGreen"]=	"#20B2AA";
-		ColorDict["ForestGreen"]=	"#228B22";
-		ColorDict["SeaGreen"]=	"#2E8B57";
-		ColorDict["DarkSlateGray"]=	"#2F4F4F";
-		ColorDict["LimeGreen"]=	"#32CD32";
-		ColorDict["MediumSeaGreen"]=	"#3CB371";
-		ColorDict["Turquoise"]=	"#40E0D0";
-		ColorDict["RoyalBlue"]=	"#4169E1";
-		ColorDict["SteelBlue"]=	"#4682B4";
-		ColorDict["DarkSlateBlue"]=	"#483D8B";
-		ColorDict["MediumTurquoise"]=	"#48D1CC";
-		ColorDict["Indigo"]= 	"#4B0082";
-		ColorDict["DarkOliveGreen"]=	"#556B2F";
-		ColorDict["CadetBlue"]=	"#5F9EA0";
-		ColorDict["CornflowerBlue"]=	"#6495ED";
-		ColorDict["MediumAquaMarine"]=	"#66CDAA";
-		ColorDict["DimGray"]=	"#696969";
-		ColorDict["SlateBlue"]=	"#6A5ACD";
-		ColorDict["OliveDrab"]=	"#6B8E23";
-		ColorDict["SlateGray"]=	"#708090";
-		ColorDict["LightSlateGray"]=	"#778899";
-		ColorDict["MediumSlateBlue"]=	"#7B68EE";
-		ColorDict["LawnGreen"]=	"#7CFC00";
-		ColorDict["Chartreuse"]=	"#7FFF00";
-		ColorDict["Aquamarine"]=	"#7FFFD4";
-		ColorDict["Maroon"]=	"#800000";
-		ColorDict["Purple"]=	"#800080";
-		ColorDict["Olive"]=	"#808000";
-		ColorDict["Gray"]=	"#808080";
-		ColorDict["SkyBlue"]=	"#87CEEB";
-		ColorDict["LightSkyBlue"]=	"#87CEFA";
-		ColorDict["BlueViolet"]=	"#8A2BE2";
-		ColorDict["DarkRed"]=	"#8B0000";
-		ColorDict["DarkMagenta"]=	"#8B008B";
-		ColorDict["SaddleBrown"]=	"#8B4513";
-		ColorDict["DarkSeaGreen"]=	"#8FBC8F";
-		ColorDict["LightGreen"]=	"#90EE90";
-		ColorDict["MediumPurple"]=	"#9370DB";
-		ColorDict["DarkViolet"]=	"#9400D3";
-		ColorDict["PaleGreen"]=	"#98FB98";
-		ColorDict["DarkOrchid"]=	"#9932CC";
-		ColorDict["YellowGreen"]=	"#9ACD32";
-		ColorDict["Sienna"]=	"#A0522D";
-		ColorDict["Brown"]=	"#A52A2A";
-		ColorDict["DarkGray"]=	"#A9A9A9";
-		ColorDict["LightBlue"]=	"#ADD8E6";
-		ColorDict["GreenYellow"]=	"#ADFF2F";
-		ColorDict["PaleTurquoise"]=	"#AFEEEE";
-		ColorDict["LightSteelBlue"]=	"#B0C4DE";
-		ColorDict["PowderBlue"]=	"#B0E0E6";
-		ColorDict["FireBrick"]=	"#B22222";
-		ColorDict["DarkGoldenRod"]=	"#B8860B";
-		ColorDict["MediumOrchid"]=	"#BA55D3";
-		ColorDict["RosyBrown"]=	"#BC8F8F";
-		ColorDict["DarkKhaki"]=	"#BDB76B";
-		ColorDict["Silver"]=	"#C0C0C0";
-		ColorDict["MediumVioletRed"]=	"#C71585";
-		ColorDict["IndianRed"]= 	"#CD5C5C";
-		ColorDict["Peru"]=	"#CD853F";
-		ColorDict["Chocolate"]=	"#D2691E";
-		ColorDict["Tan"]=	"#D2B48C";
-		ColorDict["LightGray"]=	"#D3D3D3";
-		ColorDict["Thistle"]=	"#D8BFD8";
-		ColorDict["Orchid"]=	"#DA70D6";
-		ColorDict["GoldenRod"]=	"#DAA520";
-		ColorDict["PaleVioletRed"]=	"#DB7093";
-		ColorDict["Crimson"]=	"#DC143C";
-		ColorDict["Gainsboro"]=	"#DCDCDC";
-		ColorDict["Plum"]=	"#DDA0DD";
-		ColorDict["BurlyWood"]=	"#DEB887";
-		ColorDict["LightCyan"]=	"#E0FFFF";
-		ColorDict["Lavender"]=	"#E6E6FA";
-		ColorDict["DarkSalmon"]=	"#E9967A";
-		ColorDict["Violet"]=	"#EE82EE";
-		ColorDict["PaleGoldenRod"]=	"#EEE8AA";
-		ColorDict["LightCoral"]=	"#F08080";
-		ColorDict["Khaki"]=	"#F0E68C";
-		ColorDict["AliceBlue"]=	"#F0F8FF";
-		ColorDict["HoneyDew"]=	"#F0FFF0";
-		ColorDict["Azure"]=	"#F0FFFF";
-		ColorDict["SandyBrown"]=	"#F4A460";
-		ColorDict["Wheat"]=	"#F5DEB3";
-		ColorDict["Beige"]=	"#F5F5DC";
-		ColorDict["WhiteSmoke"]=	"#F5F5F5";
-		ColorDict["MintCream"]=	"#F5FFFA";
-		ColorDict["GhostWhite"]=	"#F8F8FF";
-		ColorDict["Salmon"]=	"#FA8072";
-		ColorDict["AntiqueWhite"]=	"#FAEBD7";
-		ColorDict["Linen"]=	"#FAF0E6";
-		ColorDict["LightGoldenRodYellow"]=	"#FAFAD2";
-		ColorDict["OldLace"]=	"#FDF5E6";
-		ColorDict["Red"]=	"#FF0000";
-		ColorDict["Fuchsia"]=	"#FF00FF";
-		ColorDict["Magenta"]=	"#FF00FF";
-		ColorDict["DeepPink"]=	"#FF1493";
-		ColorDict["OrangeRed"]=	"#FF4500";
-		ColorDict["Tomato"]=	"#FF6347";
-		ColorDict["HotPink"]=	"#FF69B4";
-		ColorDict["Coral"]=	"#FF7F50";
-		ColorDict["DarkOrange"]=	"#FF8C00";
-		ColorDict["LightSalmon"]=	"#FFA07A";
-		ColorDict["Orange"]=	"#FFA500";
-		ColorDict["LightPink"]=	"#FFB6C1";
-		ColorDict["Pink"]=	"#FFC0CB";
-		ColorDict["Gold"]=	"#FFD700";
-		ColorDict["PeachPuff"]=	"#FFDAB9";
-		ColorDict["NavajoWhite"]=	"#FFDEAD";
-		ColorDict["Moccasin"]=	"#FFE4B5";
-		ColorDict["Bisque"]=	"#FFE4C4";
-		ColorDict["MistyRose"]=	"#FFE4E1";
-		ColorDict["BlanchedAlmond"]=	"#FFEBCD";
-		ColorDict["PapayaWhip"]=	"#FFEFD5";
-		ColorDict["LavenderBlush"]=	"#FFF0F5";
-		ColorDict["SeaShell"]=	"#FFF5EE";
-		ColorDict["Cornsilk"]=	"#FFF8DC";
-		ColorDict["LemonChiffon"]=	"#FFFACD";
-		ColorDict["FloralWhite"]=	"#FFFAF0";
-		ColorDict["Snow"]=	"#FFFAFA";
-		ColorDict["Yellow"]=	"#FFFF00";
-		ColorDict["LightYellow"]=	"#FFFFE0";
-		ColorDict["Ivory"]=	"#FFFFF0";
-		ColorDict["White"]=	"#FFFFFF";
-
-		foreach (KeyValuePair<string,string> kvp in ColorDict)
-		{
-			if( kvp.Key.ToUpper() == _ColorName.ToUpper() )
-			{
-				//Debug.Log(kvp.Value+" found");
-
-				string HexRed = kvp.Value.Substring(1,2);
-				string HesGreen = kvp.Value.Substring(3,2);
-				string HexBlue = kvp.Value.Substring(5,2);
-
-				int red = Convert.ToInt32(HexRed, 16);
-				int green = Convert.ToInt32(HesGreen, 16);
-				int blue = Convert.ToInt32(HexBlue, 16);
-				return new Color(red/255.0f, green/255.0f,blue/255.0f);
-			}
-
-		}
-		return Color.black;		//Default Color
-	}
-}
 
 

@@ -53,7 +53,9 @@ public class ThirdPersonController : MonoBehaviour
 	// The current move direction in x-z
 	private Vector3 moveDirection = Vector3.zero;
 	// The current vertical speed
-	private float verticalSpeed = 0.0f;
+
+	[DBG_Track(0.8f,0.2f,0.2f)]
+	public float verticalSpeed = 0.0f;
 	// The current x-z move speed
 
 
