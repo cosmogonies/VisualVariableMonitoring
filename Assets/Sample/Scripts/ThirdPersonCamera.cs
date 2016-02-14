@@ -217,8 +217,8 @@ public class ThirdPersonCamera : MonoBehaviour
 		cameraTransform.rotation = yRotation * Quaternion.LookRotation(relativeOffset);
 		
 		// Calculate the projected center position and top position in world space
-		Ray centerRay = cameraTransform.camera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 1));
-		Ray topRay = cameraTransform.camera.ViewportPointToRay(new Vector3(0.5f, clampHeadPositionScreenSpace, 1));
+		Ray centerRay = cameraTransform.GetComponent<Camera>().ViewportPointToRay(new Vector3(0.5f, 0.5f, 1));
+		Ray topRay = cameraTransform.GetComponent<Camera>().ViewportPointToRay(new Vector3(0.5f, clampHeadPositionScreenSpace, 1));
 		
 		Vector3 centerRayPos = centerRay.GetPoint(distance);
 		Vector3 topRayPos = topRay.GetPoint(distance);
