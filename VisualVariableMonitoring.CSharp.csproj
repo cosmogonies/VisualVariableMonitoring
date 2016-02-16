@@ -64,9 +64,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assets\CG_VisualVariableMonitoring.cs" />
+    <Compile Include="Assets\DBG_DataCollector.cs" />
     <Compile Include="Assets\DBG_TrackAttribute.cs" />
-    <Compile Include="Assets\Sample\Scripts\ThirdPersonCamera.cs" />
-    <Compile Include="Assets\Sample\Scripts\ThirdPersonController.cs" />
+    <Compile Include="Assets\Example01_ThirdPersonController\Scripts\ThirdPersonCamera.cs" />
+    <Compile Include="Assets\Example01_ThirdPersonController\Scripts\ThirdPersonController.cs" />
+    <Compile Include="Assets\Example02_Fps\RandomOperations.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\SyntaxTree\UnityVS\2015\UnityVS.CSharp.targets" />
 </Project>

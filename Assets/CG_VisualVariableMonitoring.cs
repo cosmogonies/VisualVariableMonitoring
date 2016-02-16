@@ -3,129 +3,78 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
-
+using VisualVariableMonitoring;
 //========================
 //	Author: Cyrille PAULHIAC
 //	Email: contact@cosmogonies.net
 //	WebSite: www.cosmogonies.net
 //========================
 
-namespace CG_VisualVariableMonitoring
-{
+//namespace VisualVariableMonitoring
+//	{
 	//Margin layout abilities
 	public enum eMarginSide {LeftSide=-1, NoMargin=0, RightSide=1};
 
 	//Curves layout mode
-	public enum eLayoutMode {Stacked=1, Overlapped=2};
-	
-	public class DBG_DataCollector
-	{	//Custom class to hold collected data and perform analysis.
+	public enum eLayoutMode {Stacked=1, Overlapped=2};	//only accurate if more than one value to track right ?
 
-		internal System.Reflection.FieldInfo Field;		//The source field
-		internal MonoBehaviour Behaviour;				//The source scripted Component
-		internal Color VariableColor = Color.white;	//Default Color.
-
-		public List<float> Data;						//The Data !
-
-		public float MaximumValue= float.MinValue;
-		public float MinimumValue= float.MaxValue;
-
-		public float Average= 0.0f;
-
-		public DBG_DataCollector(System.Reflection.FieldInfo _Field, MonoBehaviour _Behaviour, Color _Color)
-		{	//Constructor
-			this.Field = _Field;
-			this.Behaviour = _Behaviour;
-			this.VariableColor = _Color;
-			Data = new List<float>();
-		}
-
-		public void addValue(float _NewValue)
-		{	//Update with the new Value at current frame.
-			this.Data.Add(_NewValue);
-
-			//Update Min/Max
-			if( _NewValue > this.MaximumValue ) 
-				this.MaximumValue = _NewValue;
-			if( _NewValue < this.MinimumValue ) 
-				this.MinimumValue = _NewValue;
-
-			//Update Average computation
-			float sum=0.0f;
-			for(int i=0; i< this.Data.Count; i++)
-				sum+=this.Data[i];
-			this.Average = sum / this.Data.Count;
-		}
-
-		public float getCurrentValue()
-		{	//returns the current Value (last one registered).
-			if(this.Data.Count==0)//First frame or we just done a clear
-				return 0.0f;
-			return this.Data[ this.Data.Count-1 ];
-		}
-
-		public void clearData()
-		{	//wipe all datas, for a total new context.
-			this.Data.Clear ();
-			this.MaximumValue= 0.0f;
-			this.MinimumValue= 0.0f;
-			this.Average= 0.0f;
-		}
-
-	}
 
 	public class CG_VisualVariableMonitoring  : MonoBehaviour
 	{	//The Component that needs to be attached to your playing Camera.
 
-		public eMarginSide MarginSide = eMarginSide.LeftSide;	// Side for the Data's Margin
-		public float MarginWidth = 0.15f; 						// in screen ratio
+		public eMarginSide MarginSide = eMarginSide.LeftSide;		// Side for the Data's Margin
+		public float MarginWidth = 0.15f; 							// in screen ratio
 
-		public eLayoutMode LayoutMode;							// Curve drawing method
+		public eLayoutMode LayoutMode;								// Curve drawing method
 
-		public bool AbsoluteMode =true;						// Does sign matters ?
+		public float Opacity = 1.0f;								// The Opacity of the Curves.
 
-		public float Opacity = 1.0f;							// The Opacity of the Curves.
+		Dictionary<string, DBG_DataCollector> WatchDict;     // All Trackables
 
-		public Dictionary<string, DBG_DataCollector> WatchDict;// All Trackables
-		
-		public CG_VisualVariableMonitoring()
-		{
-			this.WatchDict = new Dictionary<string, DBG_DataCollector>();
-		}
+		public bool AutoStart = false;
+
+		private bool isRecording = false;
+		private float TimeOfRecording = -1f;
+
+		Dictionary<float, string> EventDict;	//seconds since start of coillecting data
+
+		private GUIStyle EventStyle;
+
 
 		void Start()
-		{
-			//Find tagged public fields:
+			{
+			WatchDict = new Dictionary<string, DBG_DataCollector>();
+			EventDict = new Dictionary<float, string>();
 
 			//Find what objects to inspect TODO: maybe add a way not to parse everything (layers, tags) ?
-			MonoBehaviour[] MonoBehaviourArray =  UnityEngine.Object.FindObjectsOfType<MonoBehaviour>();
-
-			for (int i = 0; i < MonoBehaviourArray.Length; i ++) 
-			{
+			MonoBehaviour[] MonoBehaviourArray = UnityEngine.Object.FindObjectsOfType<MonoBehaviour>();
+			for ( int i = 0 ; i < MonoBehaviourArray.Length ; i++ )
+				{
 				MonoBehaviour currentBehaviour = MonoBehaviourArray[i];
 				//Debug.Log ("Introspecting current class :" +currentBehaviour.name+" of type "+currentBehaviour.GetType().Name);
-
 				System.Reflection.FieldInfo[] FieldArray = currentBehaviour.GetType().GetFields();
-				for (int j = 0; j < FieldArray.Length; j ++) 
-				{
-					System.Reflection.FieldInfo currentField = FieldArray[j];
-					object[] CustomAttributeArray = currentField.GetCustomAttributes(true);
-					if( CustomAttributeArray.Length>0 )
+				for ( int j = 0 ; j < FieldArray.Length ; j++ )
 					{
-						for (int k = 0; k < CustomAttributeArray.Length; k ++) 
+					System.Reflection.FieldInfo currentField = FieldArray[j];
+					object[] CustomAttributeArray = currentField.GetCustomAttributes( true );
+					if ( CustomAttributeArray.Length > 0 )
 						{
-							if( CustomAttributeArray[k].GetType() == typeof(DBG_Track) )
+						for ( int k = 0 ; k < CustomAttributeArray.Length ; k++ )
 							{
-								//Debug.Log ("\tFound trackable variable @ class :" +currentBehaviour.name+" typeof "+currentBehaviour.GetType().Name +" FieldName = "+ currentField.Name);
-								this.WatchDict[currentField.Name] = new DBG_DataCollector(currentField, currentBehaviour,  ((DBG_Track) CustomAttributeArray[k]).VariableColor);
+							if ( CustomAttributeArray[k].GetType() == typeof( DBG_Track ) )
+								{
+								Debug.Log( "\tFound trackable variable @ class :" + currentBehaviour.name + " typeof " + currentBehaviour.GetType().Name + " FieldName = " + currentField.Name );
+								WatchDict[currentField.Name] = new DBG_DataCollector( currentField, currentBehaviour, ((DBG_Track) CustomAttributeArray[k]).VariableColor );
+								}
 							}
 						}
 					}
-					
 				}
-			}
 
-		}
+			if ( AutoStart )
+				StartRecording();
+
+			}
 
 		void OnGUI()
 		{
@@ -142,30 +91,27 @@ namespace CG_VisualVariableMonitoring
 			if(this.MarginSide== eMarginSide.LeftSide)
 				XPos = 0.0f;
 
-			float SlicedPanelHeight =  (1f/this.WatchDict.Keys.Count) * Screen.height;
+			float SlicedPanelHeight = Screen.height / WatchDict.Keys.Count;
 
 			// Displaying values analysis in Margin
-			#region ValueAnalysis
-			int VariableIteration=1;
-			foreach (KeyValuePair<string, DBG_DataCollector> kvp in this.WatchDict)
-			{
-				int LineIteration=1;
+			#region Values
+			int VariableIteration = 1;
+			foreach (KeyValuePair<string, DBG_DataCollector> kvp in WatchDict)
+			{ 
+				int LineIteration = 1;
 				float YPos = Screen.height - SlicedPanelHeight*VariableIteration;
 
 				DBG_DataCollector current = kvp.Value;
 
-				GUIStyle TextStyle = new GUIStyle();
-				TextStyle.normal.textColor = current.VariableColor;
-
-				GUI.Label(new Rect(XPos, YPos+FontHeight*LineIteration, (MarginWidth * Screen.width),FontHeight), "["+current.Field.Name+"]",TextStyle);
+				GUI.Label(new Rect(XPos, YPos+FontHeight*LineIteration, (MarginWidth * Screen.width),FontHeight), "["+current.Field.Name+"]", current.guiStyle );
 				LineIteration++;
-				GUI.Label(new Rect(XPos, YPos+FontHeight*LineIteration, (MarginWidth * Screen.width),FontHeight), "[Cur="+current.getCurrentValue().ToString()+"]",TextStyle);
+				GUI.Label(new Rect(XPos, YPos+FontHeight*LineIteration, (MarginWidth * Screen.width),FontHeight), "[Cur="+current.getCurrentValue().ToString()+"]", current.guiStyle );
 				LineIteration++;
-				GUI.Label(new Rect(XPos, YPos+FontHeight*LineIteration, (MarginWidth * Screen.width),FontHeight), "[Min="+current.MinimumValue.ToString()+"]",TextStyle);
+				GUI.Label(new Rect(XPos, YPos+FontHeight*LineIteration, (MarginWidth * Screen.width),FontHeight), "[Min="+current.MinimumValue.ToString()+"]", current.guiStyle );
 				LineIteration++;
-				GUI.Label(new Rect(XPos, YPos+FontHeight*LineIteration, (MarginWidth * Screen.width),FontHeight), "[Max="+current.MaximumValue.ToString()+"]",TextStyle);
+				GUI.Label(new Rect(XPos, YPos+FontHeight*LineIteration, (MarginWidth * Screen.width),FontHeight), "[Max="+current.MaximumValue.ToString()+"]", current.guiStyle );
 				LineIteration++;
-				GUI.Label(new Rect(XPos, YPos+FontHeight*LineIteration, (MarginWidth * Screen.width),FontHeight), "[Avrg="+current.Average.ToString()+"]",TextStyle);
+				GUI.Label(new Rect(XPos, YPos+FontHeight*LineIteration, (MarginWidth * Screen.width),FontHeight), "[Avrg="+current.Average.ToString()+"]", current.guiStyle );
 				LineIteration++;
 				LineIteration++;
 
@@ -182,122 +128,142 @@ namespace CG_VisualVariableMonitoring
 				else
 					this.LayoutMode = eLayoutMode.Stacked;
 			}
-			if( GUI.Button( new Rect(XPos+ PanelWidth*0.5f, Screen.height - FontHeight*2, PanelWidth*0.5f,FontHeight), "Abs" ) )
+
+			if ( GUI.Button( new Rect( XPos + PanelWidth * 0.5f, Screen.height - FontHeight * 2, PanelWidth * 0.5f, FontHeight ), (this.isRecording ? "STOP" : "START") ) )
 			{
-				this.AbsoluteMode = !this.AbsoluteMode;
+				ToggleRecordingState( !this.isRecording );
 			}
+			
 			if( GUI.Button( new Rect(XPos, Screen.height - FontHeight, PanelWidth,FontHeight), "Clear" ) )
 			{
-				foreach (KeyValuePair<string, DBG_DataCollector> kvp in this.WatchDict)
+				foreach (KeyValuePair<string, DBG_DataCollector> kvp in WatchDict)
 				{
 					kvp.Value.clearData();
 				}
 			}
 			#endregion
 
+			//Displaying Events
+			foreach ( KeyValuePair<float, string> kvp in EventDict )
+				{
+				float eventDuration = kvp.Key;
+				//we have to calculate the currrent rtation the duration represent:
+				float currentRatio = eventDuration / GetCurrentRecordDuration();
+				DisplayEvent( kvp.Value, currentRatio );
+				}
 		}
 
 
 		void LateUpdate()
 		{
-			//Adding current Values into the WatchDict.
-			foreach (KeyValuePair<string, DBG_DataCollector> kvp in this.WatchDict) 
-			{
-				float currentValue = (float) kvp.Value.Field.GetValue (kvp.Value.Behaviour); //TODO: be sure the cast is possible
-
-				if(this.AbsoluteMode)
-					currentValue = Mathf.Abs (currentValue);
-
-				kvp.Value.addValue(currentValue);
-			}
-			//Drawing the curves :
-			if (this.Opacity > 0.0f) 
-			{
-				int i = 0;
-				foreach (KeyValuePair<string, DBG_DataCollector> kvp in this.WatchDict) 
+			if ( this.isRecording )
 				{
-					DrawCurve (kvp.Value, i, this.WatchDict.Keys.Count, this.Opacity);
-					i++;
+				//Adding current Values into the WatchDict.
+				foreach ( KeyValuePair<string, DBG_DataCollector> kvp in WatchDict )
+					{
+					float currentValue = (float) kvp.Value.Field.GetValue( kvp.Value.Behaviour ); //TODO: be sure the cast is possible
+					kvp.Value.addValue( currentValue );
+					}
+
+				//Drawing the curves :
+				if ( this.Opacity > 0.0f )
+					{
+					int i = 0;
+					foreach ( KeyValuePair<string, DBG_DataCollector> kvp in WatchDict )
+						{
+						DrawCurve( kvp.Value, i, WatchDict.Keys.Count, this.Opacity );
+						i++;
+						}
+					}
 				}
-			}
 		}
 
 
+		public void StartRecording()
+			{
+			ToggleRecordingState( true );
+			}
+		public void EndRecording()
+			{
+			ToggleRecordingState( false );
+			}
+		void ToggleRecordingState( bool StateToVerride )
+			{
+			this.isRecording = StateToVerride;
+			if ( isRecording )
+				{
+				TimeOfRecording = Time.time;
+				}
+			}
+		float GetCurrentRecordDuration()
+			{
+			return Time.time - this.TimeOfRecording;
+			}
+
+
+		public void RegisterEvent( string EventName )
+			{
+			//if ( this.isRecording )
+			if ( true )
+				{
+				float EventDateSinceRecording = GetCurrentRecordDuration();
+				EventDict[EventDateSinceRecording] = EventName;
+				}
+			else
+				{
+				UnityEngine.Debug.LogWarning("User try to register an event outside a recording window, event NOT registered, aborting");
+				}
+			}
 
 
 
 
-		void DrawCurve(DBG_DataCollector _DataCollector, int _SliceIteration, int _SliceCount, float _Opacity)
-		{	//Draw the curve for the given DataCollector
+
+
+
+
+		void DrawCurve( DBG_DataCollector _DataCollector, int _SliceIteration, int _SliceCount, float _Opacity )
+			{   //Draw the curve for the given DataCollector
 			float XPosAsRatio = 0.0f;
 			float value = 0.0f;
-			
-			List< Vector3 > ViewPortBuffer = new List<Vector3>();
+
+			////////////////////////////////////////////////////////////float SlicedPanelHeight = Screen.height / this.WatchDict.Keys.Count;
+
+			List<Vector3> ViewPortBuffer = new List<Vector3>();
 
 			Color TheColor = _DataCollector.VariableColor;
-			if(_Opacity<1.0f)
-				TheColor = new Color(TheColor.r, TheColor.g, TheColor.b, _Opacity);
+			if ( _Opacity < 1.0f )
+				TheColor = new Color( TheColor.r, TheColor.g, TheColor.b, _Opacity );
 
-			for(int i=0; i< _DataCollector.Data.Count; i++)
-			{
+			for ( int i = 0 ; i < _DataCollector.Data.Count ; i++ )
+				{
 				value = _DataCollector.Data[i];
 
-				//Determining the XPos as a ratio for the screen
-				if(this.MarginSide == eMarginSide.RightSide)
-					XPosAsRatio =  Mathf.Lerp(0.0f,1.0f-MarginWidth, (float) i / (_DataCollector.Data.Count -1) ) ;
-				else if(this.MarginSide == eMarginSide.LeftSide)
-					XPosAsRatio =  Mathf.Lerp(MarginWidth,1.0f, (float) i / (_DataCollector.Data.Count -1) ) ;
+				//Determining the XPos as a ratio for the screen:
+				if ( this.MarginSide == eMarginSide.RightSide )
+					XPosAsRatio = Mathf.Lerp( 0.0f, 1.0f - MarginWidth, (float) i / (_DataCollector.Data.Count - 1) );
+				else if ( this.MarginSide == eMarginSide.LeftSide )
+					XPosAsRatio = Mathf.Lerp( MarginWidth, 1.0f, (float) i / (_DataCollector.Data.Count - 1) );
 				else
-					XPosAsRatio =  Mathf.Lerp(0.0f,1.0f, (float) i / (_DataCollector.Data.Count -1) ) ;
-				
-				//Determining the YPos as a ratio for the screen, according to Stacked layout and AbsoluteMode:
+					XPosAsRatio = Mathf.Lerp( 0.0f, 1.0f, (float) i / (_DataCollector.Data.Count - 1) );
+
+				//Determining the YPos as a ratio for the screen:
 				float YPosAsRatio = 0.0f;
-				if( this.AbsoluteMode)
-				{
-					if(_DataCollector.MaximumValue!=0.0f)
-						YPosAsRatio = value/_DataCollector.MaximumValue;
-				}
-				else
-				{
-					float Max=1.0f;
+				float range = _DataCollector.MaximumValue - _DataCollector.MinimumValue; // range fit 100% of SlicedPanelHeight and is 1.0f as ratio
+				YPosAsRatio = (value - _DataCollector.MinimumValue) / range;
 
-					if( Mathf.Abs(_DataCollector.MinimumValue) > _DataCollector.MaximumValue )
+				Vector3 Point2D_Value = new Vector3( XPosAsRatio, YPosAsRatio, Camera.main.nearClipPlane );
+				ViewPortBuffer.Add( Point2D_Value );
+
+				if ( i > 0 )
 					{
-						if(_DataCollector.MinimumValue!=0.0f)
-							Max = Mathf.Abs(_DataCollector.MinimumValue);
+					Vector3 Point3D_ValuePrevious = Camera.main.ViewportToWorldPoint( ViewPortBuffer[i - 1] );
+					Vector3 Point3D_Value = Camera.main.ViewportToWorldPoint( Point2D_Value );
+
+					Debug.DrawLine( Point3D_ValuePrevious, Point3D_Value, TheColor, 0f );   //duration à 0f(seconds) => 1 frame
 					}
-					else
-					{
-						if(_DataCollector.MaximumValue!=0.0f)
-							Max = _DataCollector.MaximumValue;
-					}
-
-					YPosAsRatio = Mathf.Abs(value) / Max;
-
-					if(value>=0.0f)
-						YPosAsRatio = 0.5f+(YPosAsRatio*0.5f);
-					else
-						YPosAsRatio = 0.5f-(YPosAsRatio*0.5f);
-				}
-
-				if( this.LayoutMode == eLayoutMode.Stacked)
-				{
-						YPosAsRatio = (1f/_SliceCount)*_SliceIteration + (YPosAsRatio*(1f/_SliceCount)  );
-				}
-
-				Vector3 Point2D_Value = new Vector3(XPosAsRatio, YPosAsRatio, Camera.main.nearClipPlane*2  );
-
-				ViewPortBuffer.Add(Point2D_Value);
-
-				if(i>0)
-				{
-					Vector3 Point3D_ValuePrevious = Camera.main.ViewportToWorldPoint( ViewPortBuffer[i-1] );
-					Vector3 Point3D_Value = Camera.main.ViewportToWorldPoint(Point2D_Value);
-
-					Debug.DrawLine(Point3D_ValuePrevious, Point3D_Value, TheColor, 0f);	//duration à 0f(seconds) => 1 frame
 				}
 			}
-		}
 
 		/*
 		void DrawColumns()
@@ -333,8 +299,60 @@ namespace CG_VisualVariableMonitoring
 		}
 		*/
 
-	}
-}
+			/*
+		void DrawEvent()
+			{
+			float angle = -90f;
+			Matrix4x4 m1 = Matrix4x4.identity;
+			Matrix4x4 m2 = Matrix4x4.identity;
+			m2.SetTRS( new Vector3( 200, 200, 0 ), Quaternion.Euler( 0, 0, angle ), Vector3.one );
+			angle += 10f * Time.deltaTime; // aux is just to see it spin
+			if ( angle > 360f )
+				angle = 0.0f;
+			m1.SetTRS( new Vector3( -50, -50, 0 ), Quaternion.identity, Vector3.one );
+			GUI.matrix = m2 * m1;
+			GUI.Box( new Rect( 0, 0, 100, 100 ), "Hello My Friends!" );
+			GUI.matrix = Matrix4x4.identity;
+			}
+			*/
+
+		void DisplayEvent(string _Label, float _XPosAsRatio)
+			{
+			int boxWidth = 132;
+
+
+			float Yposition = Screen.height - (boxWidth*0.5f);
+
+			float PanelWidth = MarginWidth * Screen.width;
+
+			float Xposition = (Screen.width- PanelWidth) * _XPosAsRatio ;
+			if ( MarginSide == eMarginSide.LeftSide )
+				Xposition = PanelWidth + Xposition;
+
+			GUIStyle EventStyle = new GUIStyle( GUI.skin.box );
+			EventStyle.alignment = TextAnchor.MiddleLeft;
+			EventStyle.padding.left = 4;
+			//EventStyle.padding.top = 0;
+			//EventStyle.normal.background = null;
+
+			//GUI.Box( new Rect( Xposition, Yposition, boxWidth, 24 ), "-=> " + _Label, EventStyle );
+			 //Rotate by angle
+			float angle = -90f;
+			Matrix4x4 m1 = Matrix4x4.identity;
+			Matrix4x4 m2 = Matrix4x4.identity;
+			m2.SetTRS( new Vector3( Xposition, Yposition, 0 ), Quaternion.Euler( 0, 0, angle ), Vector3.one );
+			angle += 10f * Time.deltaTime; // aux is just to see it spin
+			if ( angle > 360f )
+				angle = 0.0f;
+			m1.SetTRS( new Vector3( -50, -50, 0 ), Quaternion.identity, Vector3.one );
+			GUI.matrix = m2 * m1;
+			GUI.Box( new Rect( 0, 0, boxWidth, 24 ), "-=> "+_Label , EventStyle );
+			GUI.matrix = Matrix4x4.identity;
+			
+			}
+
+		}
+	//}
 
 
 
